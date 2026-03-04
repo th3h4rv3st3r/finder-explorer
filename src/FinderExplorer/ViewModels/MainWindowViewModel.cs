@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FinderExplorer.Core.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -42,16 +43,33 @@ public partial class MainWindowViewModel : ObservableObject
     private bool _isLoading;
 
     [ObservableProperty]
+    private bool _isFavoritesExpanded = true;
+
+    [ObservableProperty]
+    private bool _isVolumesExpanded = true;
+
+    [ObservableProperty]
+    private bool _isNetworkExpanded = true;
+
+    [ObservableProperty]
+    private bool _isNextcloudExpanded = true;
+
+    [ObservableProperty]
     private string _itemCountText = "";
 
     public SidebarItemViewModel SidebarHome { get; }
+    public SidebarItemViewModel SidebarNetwork { get; }
+    public SidebarItemViewModel SidebarNextcloud { get; }
 
     public MainWindowViewModel(IFileSystemService fileSystem)
     {
         _fileSystem = fileSystem;
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        SidebarHome = new SidebarItemViewModel("Home", userProfile, "🏠", "Icon.Files.App.ThemedIcons.Folder");
+        SidebarHome = new SidebarItemViewModel("Home", userProfile, GetSidebarIconUri("home"));
+        SidebarNetwork = new SidebarItemViewModel("Network", string.Empty, GetSidebarIconUri("network"), canNavigate: false);
+        SidebarNextcloud = new SidebarItemViewModel("Nextcloud", string.Empty, GetSidebarIconUri("nextcloud"), canNavigate: false);
+        SidebarHome.IsSelected = true;
 
         InitializeSidebar();
         _ = NavigateToAsync(CurrentPath);
@@ -66,16 +84,14 @@ public partial class MainWindowViewModel : ObservableObject
                 .Where(i => i.Section == Core.Models.SidebarSection.Favorites)
                 .Select(i => new SidebarItemViewModel(
                     i.Label, i.Path,
-                    GetSidebarEmoji(i.IconKey),
-                    GetSidebarIconKey(i.IconKey))));
+                    GetSidebarIconUri(i.IconKey))));
 
         SidebarVolumes = new ObservableCollection<SidebarItemViewModel>(
             sidebarItems
                 .Where(i => i.Section == Core.Models.SidebarSection.Volumes)
                 .Select(i => new SidebarItemViewModel(
                     i.Label, i.Path,
-                    GetSidebarEmoji(i.IconKey),
-                    GetSidebarIconKey(i.IconKey))));
+                    GetSidebarIconUri(i.IconKey))));
     }
 
     [RelayCommand]
@@ -116,12 +132,11 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (item is not null)
         {
-            // Update selection state
-            foreach (var fav in SidebarFavorites) fav.IsSelected = false;
-            foreach (var vol in SidebarVolumes) vol.IsSelected = false;
+            ClearSidebarSelection();
             item.IsSelected = true;
 
-            await NavigateToAsync(item.Path);
+            if (item.CanNavigate && !string.IsNullOrWhiteSpace(item.Path))
+                await NavigateToAsync(item.Path);
         }
     }
 
@@ -200,28 +215,38 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private static string GetSidebarEmoji(string iconKey) => iconKey switch
+    private void ClearSidebarSelection()
     {
-        "desktop" => "🖥",
-        "documents" => "📄",
-        "downloads" => "⬇",
-        "pictures" => "🖼",
-        "music" => "🎵",
-        "videos" => "🎬",
-        "drive" => "💾",
-        _ => "📁"
-    };
+        foreach (var item in EnumerateSidebarItems())
+            item.IsSelected = false;
+    }
 
-    private static string GetSidebarIconKey(string iconKey) => iconKey switch
+    private IEnumerable<SidebarItemViewModel> EnumerateSidebarItems()
     {
-        "desktop" => "Icon.Desktop",
-        "documents" => "Icon.Documents",
-        "downloads" => "Icon.Downloads",
-        "pictures" => "Icon.Pictures",
-        "music" => "Icon.Music",
-        "videos" => "Icon.Videos",
-        "drive" => "Icon.Drive",
-        _ => "Icon.Files.App.ThemedIcons.Folder"
+        yield return SidebarHome;
+        yield return SidebarNetwork;
+        yield return SidebarNextcloud;
+
+        foreach (var fav in SidebarFavorites)
+            yield return fav;
+
+        foreach (var vol in SidebarVolumes)
+            yield return vol;
+    }
+
+    private static string GetSidebarIconUri(string iconKey) => iconKey switch
+    {
+        "home" => "avares://FinderExplorer/Assets/Icons/WinUI/Home.png",
+        "desktop" => "avares://FinderExplorer/Assets/Icons/WinUI/Desktop.png",
+        "documents" => "avares://FinderExplorer/Assets/Icons/WinUI/Documents.png",
+        "downloads" => "avares://FinderExplorer/Assets/Icons/WinUI/Downloads.png",
+        "pictures" => "avares://FinderExplorer/Assets/Icons/WinUI/Pictures.png",
+        "music" => "avares://FinderExplorer/Assets/Icons/WinUI/Music.png",
+        "videos" => "avares://FinderExplorer/Assets/Icons/WinUI/Videos.png",
+        "drive" => "avares://FinderExplorer/Assets/Icons/WinUI/Drive.png",
+        "network" => "avares://FinderExplorer/Assets/Icons/WinUI/Network.png",
+        "nextcloud" => "avares://FinderExplorer/Assets/Icons/WinUI/CloudDrive.png",
+        _ => "avares://FinderExplorer/Assets/Icons/WinUI/Drive.png"
     };
 
     private static string GetFileIcon(string extension) => extension.ToLowerInvariant() switch

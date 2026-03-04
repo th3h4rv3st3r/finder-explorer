@@ -8,15 +8,15 @@ public partial class SidebarItemViewModel : ObservableObject
 {
     [ObservableProperty] private string _label;
     [ObservableProperty] private string _path;
-    [ObservableProperty] private string _icon; // emoji fallback
-    [ObservableProperty] private string _iconKey; // resource key e.g. "Icon.Home"
+    [ObservableProperty] private string _iconPath; // avares:// path
+    [ObservableProperty] private bool _canNavigate;
     [ObservableProperty] private bool _isSelected;
 
-    public SidebarItemViewModel(string label, string path, string icon, string iconKey = "Icon.Files.App.ThemedIcons.Folder")
+    public SidebarItemViewModel(string label, string path, string iconPath, bool canNavigate = true)
     {
         _label = label;
         _path = path;
-        _icon = icon;
-        _iconKey = iconKey;
+        _iconPath = iconPath;
+        _canNavigate = canNavigate;
     }
 }
