@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FinderExplorer.Core/FinderExplorer.Core.csproj" />
+    <Project Path="src/FinderExplorer.Native/FinderExplorer.Native.csproj" />
+    <Project Path="src/FinderExplorer/FinderExplorer.csproj" />
+  </Folder>
+</Solution>
