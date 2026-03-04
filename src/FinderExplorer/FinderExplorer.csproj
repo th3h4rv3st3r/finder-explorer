@@ -9,6 +9,7 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <AssemblyName>FinderExplorer</AssemblyName>
     <RootNamespace>FinderExplorer</RootNamespace>
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
 
     <!-- Metadata -->
     <Authors>th3h4rv3st3r</Authors>

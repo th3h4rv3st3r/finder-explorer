@@ -6,6 +6,7 @@
         Title="{CompiledBinding WindowTitle}"
         Width="1100" Height="700"
         MinWidth="700" MinHeight="450"
+        Icon="avares://FinderExplorer/Assets/app-icon.ico"
         Background="Transparent"
         TransparencyLevelHint="Mica"
         ExtendClientAreaToDecorationsHint="True"
@@ -47,7 +48,7 @@
                                             Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}"
                                             CommandParameter="{CompiledBinding}">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <Image Source="{CompiledBinding IconImage}"
+                                            <Image Source="{Binding IconImage}"
                                                    Width="20" Height="20"
                                                    IsVisible="{CompiledBinding HasIconImage}" />
                                             <TextBlock Text="{CompiledBinding Icon}"
@@ -71,7 +72,7 @@
                                             Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}"
                                             CommandParameter="{CompiledBinding}">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <Image Source="{CompiledBinding IconImage}"
+                                            <Image Source="{Binding IconImage}"
                                                    Width="20" Height="20"
                                                    IsVisible="{CompiledBinding HasIconImage}" />
                                             <TextBlock Text="{CompiledBinding Icon}"

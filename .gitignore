@@ -33,3 +33,8 @@ desktop.ini
 ## Artifacts
 artifacts/
 TestResults/
+Release/
+
+## Misc
+*.icns
+*.pfx
