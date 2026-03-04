@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using FinderExplorer.Core.Services;
 using FinderExplorer.ViewModels;
 using FinderExplorer.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,9 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        // Core services
+        services.AddSingleton<IFileSystemService, FileSystemService>();
+
         // ViewModels
         services.AddTransient<MainWindowViewModel>();
     }

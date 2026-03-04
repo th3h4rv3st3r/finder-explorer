@@ -2,7 +2,6 @@
 
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using FinderExplorer.ViewModels;
 
 namespace FinderExplorer.Views;

@@ -2,14 +2,21 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FinderExplorer.Core.Services;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FinderExplorer.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject
 {
+    private readonly IFileSystemService _fileSystem;
+    private CancellationTokenSource? _loadCts;
+
     [ObservableProperty]
     private string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
@@ -31,72 +38,87 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<SidebarItemViewModel> _sidebarVolumes = [];
 
-    public MainWindowViewModel()
+    [ObservableProperty]
+    private bool _isLoading;
+
+    public MainWindowViewModel(IFileSystemService fileSystem)
     {
+        _fileSystem = fileSystem;
         InitializeSidebar();
-        NavigateTo(CurrentPath);
+        _ = NavigateToAsync(CurrentPath);
     }
 
     private void InitializeSidebar()
     {
-        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var sidebarItems = _fileSystem.GetSidebarItems();
 
-        SidebarFavorites =
-        [
-            new("Desktop", Path.Combine(userProfile, "Desktop"), "🖥"),
-            new("Documents", Path.Combine(userProfile, "Documents"), "📄"),
-            new("Downloads", Path.Combine(userProfile, "Downloads"), "⬇"),
-            new("Pictures", Path.Combine(userProfile, "Pictures"), "🖼"),
-            new("Music", Path.Combine(userProfile, "Music"), "🎵"),
-            new("Videos", Path.Combine(userProfile, "Videos"), "🎬"),
-        ];
+        SidebarFavorites = new ObservableCollection<SidebarItemViewModel>(
+            sidebarItems
+                .Where(i => i.Section == Core.Models.SidebarSection.Favorites)
+                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIcon(i.IconKey))));
 
-        SidebarVolumes = [];
-        foreach (var drive in DriveInfo.GetDrives())
-        {
-            if (drive.IsReady)
-            {
-                var label = string.IsNullOrWhiteSpace(drive.VolumeLabel)
-                    ? drive.Name
-                    : $"{drive.VolumeLabel} ({drive.Name.TrimEnd('\\')})";
-                SidebarVolumes.Add(new(label, drive.Name, "💾"));
-            }
-        }
+        SidebarVolumes = new ObservableCollection<SidebarItemViewModel>(
+            sidebarItems
+                .Where(i => i.Section == Core.Models.SidebarSection.Volumes)
+                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIcon(i.IconKey))));
     }
 
     [RelayCommand]
-    private void NavigateTo(string path)
+    private async Task NavigateToAsync(string path)
     {
-        if (!Directory.Exists(path))
+        if (!_fileSystem.DirectoryExists(path))
             return;
 
         CurrentPath = path;
+        WindowTitle = $"Finder Explorer — {Path.GetFileName(path)}";
         UpdateBreadcrumbs();
-        LoadDirectory();
+        await LoadDirectoryAsync();
     }
 
     [RelayCommand]
-    private void NavigateUp()
+    private async Task NavigateUpAsync()
     {
-        var parent = Directory.GetParent(CurrentPath);
+        var parent = _fileSystem.GetParentPath(CurrentPath);
         if (parent is not null)
-            NavigateTo(parent.FullName);
+            await NavigateToAsync(parent);
     }
 
     [RelayCommand]
-    private void OpenItem(FileItemViewModel? item)
+    private async Task OpenItemAsync(FileItemViewModel? item)
     {
         if (item is null) return;
 
         if (item.IsDirectory)
-            NavigateTo(item.FullPath);
+            await NavigateToAsync(item.FullPath);
+        // TODO: open files with default app via Process.Start
     }
 
     [RelayCommand]
-    private void SidebarNavigate(SidebarItemViewModel? item)
+    private async Task SidebarNavigateAsync(SidebarItemViewModel? item)
     {
         if (item is not null)
-            NavigateTo(item.Path);
+        {
+            // Update selection state
+            foreach (var fav in SidebarFavorites) fav.IsSelected = false;
+            foreach (var vol in SidebarVolumes) vol.IsSelected = false;
+            item.IsSelected = true;
+
+            await NavigateToAsync(item.Path);
+        }
+    }
+
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand]
+    private async Task DeleteItemAsync(FileItemViewModel? item)
+    {
+        if (item is null) return;
+        await _fileSystem.DeleteAsync(item.FullPath);
+        Items.Remove(item);
     }
 
     private void UpdateBreadcrumbs()
@@ -107,52 +129,53 @@ public partial class MainWindowViewModel : ObservableObject
             BreadcrumbSegments.Add(part);
     }
 
-    private void LoadDirectory()
+    private async Task LoadDirectoryAsync()
     {
-        Items.Clear();
+        // Cancel any in-flight load
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var ct = _loadCts.Token;
+
+        IsLoading = true;
 
         try
         {
-            var dirInfo = new DirectoryInfo(CurrentPath);
+            var fsItems = await _fileSystem.GetItemsAsync(CurrentPath, ct);
+            ct.ThrowIfCancellationRequested();
 
-            // Directories first
-            foreach (var dir in dirInfo.EnumerateDirectories())
+            Items.Clear();
+            foreach (var fsItem in fsItems)
             {
-                try
+                Items.Add(new FileItemViewModel
                 {
-                    Items.Add(new FileItemViewModel
-                    {
-                        Name = dir.Name,
-                        FullPath = dir.FullName,
-                        IsDirectory = true,
-                        Size = null,
-                        Modified = dir.LastWriteTime,
-                        Icon = "📁"
-                    });
-                }
-                catch { /* Skip inaccessible */ }
-            }
-
-            // Then files
-            foreach (var file in dirInfo.EnumerateFiles())
-            {
-                try
-                {
-                    Items.Add(new FileItemViewModel
-                    {
-                        Name = file.Name,
-                        FullPath = file.FullName,
-                        IsDirectory = false,
-                        Size = file.Length,
-                        Modified = file.LastWriteTime,
-                        Icon = GetFileIcon(file.Extension)
-                    });
-                }
-                catch { /* Skip inaccessible */ }
+                    Name = fsItem.Name,
+                    FullPath = fsItem.FullPath,
+                    IsDirectory = fsItem.IsDirectory,
+                    Size = fsItem.Size,
+                    Modified = fsItem.LastModified,
+                    Icon = fsItem.IsDirectory ? "📁" : GetFileIcon(fsItem.Extension)
+                });
             }
         }
-        catch { /* Access denied to directory */ }
+        catch (OperationCanceledException) { /* Expected on rapid navigation */ }
+        catch { /* Access denied or other FS error */ }
+        finally
+        {
+            IsLoading = false;
+        }
     }
+
+    private static string GetSidebarIcon(string iconKey) => iconKey switch
+    {
+        "desktop" => "🖥",
+        "documents" => "📄",
+        "downloads" => "⬇",
+        "pictures" => "🖼",
+        "music" => "🎵",
+        "videos" => "🎬",
+        "drive" => "💾",
+        _ => "📁"
+    };
 
     private static string GetFileIcon(string extension) => extension.ToLowerInvariant() switch
     {
@@ -169,38 +192,4 @@ public partial class MainWindowViewModel : ObservableObject
         ".cs" or ".py" or ".js" or ".ts" or ".html" or ".css" => "💻",
         _ => "📄"
     };
-}
-
-public partial class FileItemViewModel : ObservableObject
-{
-    [ObservableProperty] private string _name = "";
-    [ObservableProperty] private string _fullPath = "";
-    [ObservableProperty] private bool _isDirectory;
-    [ObservableProperty] private long? _size;
-    [ObservableProperty] private DateTime _modified;
-    [ObservableProperty] private string _icon = "📄";
-
-    public string SizeDisplay => IsDirectory ? "--" : FormatSize(Size ?? 0);
-
-    private static string FormatSize(long bytes) => bytes switch
-    {
-        < 1024 => $"{bytes} B",
-        < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
-        < 1024 * 1024 * 1024 => $"{bytes / (1024.0 * 1024):F1} MB",
-        _ => $"{bytes / (1024.0 * 1024 * 1024):F2} GB"
-    };
-}
-
-public partial class SidebarItemViewModel : ObservableObject
-{
-    [ObservableProperty] private string _label;
-    [ObservableProperty] private string _path;
-    [ObservableProperty] private string _icon;
-
-    public SidebarItemViewModel(string label, string path, string icon)
-    {
-        _label = label;
-        _path = path;
-        _icon = icon;
-    }
 }

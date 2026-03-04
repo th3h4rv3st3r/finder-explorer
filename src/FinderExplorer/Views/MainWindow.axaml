@@ -72,11 +72,14 @@
 
             <!-- Toolbar -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto">
-                <!-- Back / Forward / Up -->
+                <!-- Back / Up -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                     <Button Classes="toolbar-btn" Content="◀" Command="{CompiledBinding NavigateUpCommand}" ToolTip.Tip="Voltar" />
                     <Button Classes="toolbar-btn" Content="▲" Command="{CompiledBinding NavigateUpCommand}" ToolTip.Tip="Pasta pai" />
                 </StackPanel>
+
+                <!-- Refresh -->
+                <Button Grid.Column="1" Classes="toolbar-btn" Content="⟳" Command="{CompiledBinding RefreshCommand}" ToolTip.Tip="Atualizar" Margin="4,0,0,0" />
 
                 <!-- Window Title (for drag area) -->
                 <TextBlock Grid.Column="2"
