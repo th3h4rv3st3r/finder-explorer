@@ -55,6 +55,9 @@ public partial class MainWindowViewModel : ObservableObject
     private bool _isNextcloudExpanded = true;
 
     [ObservableProperty]
+    private bool _isTagsExpanded = true;
+
+    [ObservableProperty]
     private string _itemCountText = "";
 
     public SidebarItemViewModel SidebarHome { get; }

@@ -24,6 +24,7 @@ public sealed class LifecycleService : ILifecycleService
     public LifecycleService(ISettingsService settings)
     {
         _settings = settings;
+        NormalizeLegacyStartupCommand();
     }
 
     // -----------------------------------------------------------------------
@@ -74,8 +75,8 @@ public sealed class LifecycleService : ILifecycleService
                 var exePath = Process.GetCurrentProcess().MainModule?.FileName;
                 if (!string.IsNullOrEmpty(exePath))
                 {
-                    // Add --hidden arg so it starts in tray
-                    key.SetValue(AppName, $"\"{exePath}\" --hidden");
+                    // Start normally; hidden launch is deferred until tray integration is fully wired.
+                    key.SetValue(AppName, $"\"{exePath}\"");
                 }
             }
             else
@@ -88,5 +89,30 @@ public sealed class LifecycleService : ILifecycleService
     public void Dispose()
     {
         RemoveTrayIcon();
+    }
+
+    private static void NormalizeLegacyStartupCommand()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            if (key?.GetValue(AppName) is not string startupCommand)
+                return;
+
+            if (!startupCommand.Contains("--hidden", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var normalized = startupCommand
+                .Replace(" --hidden", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("--hidden", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Trim();
+
+            if (!string.IsNullOrWhiteSpace(normalized))
+                key.SetValue(AppName, normalized);
+        }
+        catch
+        {
+            // Best-effort migration only.
+        }
     }
 }

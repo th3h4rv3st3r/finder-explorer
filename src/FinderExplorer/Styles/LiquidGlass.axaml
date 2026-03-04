@@ -13,92 +13,145 @@
         <Setter Property="Foreground" Value="#E7EAF0" />
     </Style>
 
+    <Styles.Resources>
+        <SolidColorBrush x:Key="SidebarItemHoverBrush" Color="#18FFFFFF" />
+        <SolidColorBrush x:Key="SidebarItemPressedBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="SidebarItemSelectedBrush" Color="#24FFFFFF" />
+        <SolidColorBrush x:Key="SidebarItemSelectedBorderBrush" Color="#2FFFFFFF" />
+        <SolidColorBrush x:Key="SidebarSelectionIndicatorBrush" Color="#62BEFF" />
+    </Styles.Resources>
+
     <!-- ═══════════════ SIDEBAR ═══════════════ -->
 
     <!-- Section Header (Pinned, Drives, Network...) -->
     <Style Selector="ToggleButton.sidebar-section">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#9DA6B8" />
-        <Setter Property="Padding" Value="8,12,12,4" />
-        <Setter Property="Margin" Value="4,4,4,0" />
+        <Setter Property="Foreground" Value="#A1A9BB" />
+        <Setter Property="Padding" Value="8,0,8,0" />
+        <Setter Property="Margin" Value="8,13,8,0" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="MinHeight" Value="24" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
     </Style>
 
     <Style Selector="ToggleButton.sidebar-section:pointerover">
-        <Setter Property="Background" Value="#08FFFFFF" />
+        <Setter Property="Background" Value="#05FFFFFF" />
+    </Style>
+
+    <Style Selector="ToggleButton.sidebar-section:checked">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ToggleButton.sidebar-section:pressed">
+        <Setter Property="Background" Value="#0AFFFFFF" />
     </Style>
 
     <Style Selector="TextBlock.section-header-label">
-        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="#9DA6B8" />
+        <Setter Property="Foreground" Value="#9CA5B7" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style Selector="TextBlock.section-chevron">
-        <Setter Property="Text" Value="▸" />
-        <Setter Property="FontSize" Value="11" />
-        <Setter Property="Foreground" Value="#8993A6" />
+        <Setter Property="Text" Value="⌄" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Foreground" Value="#8691A7" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Width" Value="9" />
+        <Setter Property="Width" Value="14" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="TextAlignment" Value="Right" />
     </Style>
 
     <Style Selector="ToggleButton.sidebar-section:checked TextBlock.section-chevron">
-        <Setter Property="Text" Value="▾" />
+        <Setter Property="Text" Value="⌃" />
     </Style>
 
     <!-- Sidebar Item (button) -->
     <Style Selector="Button.sidebar-item">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#E5EAF2" />
+        <Setter Property="Foreground" Value="#EEF2F8" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="6" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="4,0,4,0" />
-        <Setter Property="Height" Value="32" />
+        <Setter Property="Margin" Value="8,0,8,0" />
+        <Setter Property="Height" Value="38" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
     </Style>
 
     <Style Selector="Button.sidebar-item:pointerover">
-        <Setter Property="Background" Value="#14FFFFFF" />
-        <Setter Property="BorderBrush" Value="#14FFFFFF" />
+        <Setter Property="Background" Value="{StaticResource SidebarItemHoverBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemHoverBrush}" />
         <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
 
     <Style Selector="Button.sidebar-item:pressed">
-        <Setter Property="Background" Value="#1DFFFFFF" />
-        <Setter Property="BorderBrush" Value="#1DFFFFFF" />
+        <Setter Property="Background" Value="{StaticResource SidebarItemPressedBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemPressedBrush}" />
     </Style>
 
     <Style Selector="Button.sidebar-item.selected">
-        <Setter Property="Background" Value="#22FFFFFF" />
-        <Setter Property="BorderBrush" Value="#2FFFFFFF" />
+        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemSelectedBorderBrush}" />
         <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
 
     <Style Selector="Button.sidebar-item.selected:pointerover">
-        <Setter Property="Background" Value="#2AFFFFFF" />
-        <Setter Property="BorderBrush" Value="#34FFFFFF" />
+        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemSelectedBorderBrush}" />
+    </Style>
+
+    <Style Selector="Button.sidebar-item.selected:pressed">
+        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemSelectedBorderBrush}" />
+    </Style>
+
+    <Style Selector="Button.sidebar-item:focus-visible">
+        <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
 
     <Style Selector="PathIcon.sidebar-pin">
-        <Setter Property="Foreground" Value="#7F8AA0" />
+        <Setter Property="Foreground" Value="#9CA6B8" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="0,0,10,0" />
     </Style>
 
     <Style Selector="Button.sidebar-item:pointerover PathIcon.sidebar-pin">
-        <Setter Property="Foreground" Value="#A6B0C2" />
+        <Setter Property="Foreground" Value="#BEC8D8" />
     </Style>
 
     <Style Selector="Button.sidebar-item.selected PathIcon.sidebar-pin">
-        <Setter Property="Foreground" Value="#C4CCDA" />
+        <Setter Property="Foreground" Value="#D0D8E6" />
+    </Style>
+
+    <Style Selector="Border.sidebar-selection-indicator">
+        <Setter Property="Width" Value="3" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="CornerRadius" Value="2" />
+        <Setter Property="Margin" Value="1,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="{StaticResource SidebarSelectionIndicatorBrush}" />
     </Style>
 
     <!-- ═══════════════ TOOLBAR ═══════════════ -->

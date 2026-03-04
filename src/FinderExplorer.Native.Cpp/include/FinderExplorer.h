@@ -161,3 +161,36 @@ FINDER_API int  FE_NanaZip_Compress(
     int                 count,
     const wchar_t*      destArchive,
     FE_ProgressCallback cb);
+
+// ---------------------------------------------------------------------------
+// Preview Handler (IPreviewHandler COM)
+// ---------------------------------------------------------------------------
+
+/// Instantiates the native Windows preview handler for `path` and renders it
+/// into the provided `hwndParent` window within `bounds`.
+/// Returns an opaque context pointer, or NULL on failure.
+FINDER_API void* FE_Preview_Create(
+    const wchar_t* path,
+    HWND           hwndParent,
+    const RECT*    bounds);
+
+/// Resizes the preview handler within the parent window.
+FINDER_API void FE_Preview_Resize(void* context, const RECT* newBounds);
+
+/// Destroys the preview handler and frees resources.
+FINDER_API void FE_Preview_Destroy(void* context);
+
+// ---------------------------------------------------------------------------
+// Native Metadata Properties (IShellItem2::GetPropertyStore)
+// ---------------------------------------------------------------------------
+
+/// Gets extended metadata for `path`.
+/// Returns 1 on success, 0 on failure.
+FINDER_API int FE_Property_GetDetails(
+    const wchar_t* path,
+    wchar_t*       outType,       int typeLen,
+    wchar_t*       outDimensions, int dimLen,
+    wchar_t*       outDateTaken,  int dateLen,
+    wchar_t*       outAuthors,    int authorLen);
+
+

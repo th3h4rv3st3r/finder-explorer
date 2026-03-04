@@ -127,6 +127,8 @@
     <ClCompile Include="src\Shell\DriveWatcherBridge.cpp" />
     <ClCompile Include="src\Shell\TrayBridge.cpp" />
     <ClCompile Include="src\Archive\NanaZipBridge.cpp" />
+    <ClCompile Include="src\Preview\PreviewBridge.cpp" />
+    <ClCompile Include="src\Preview\PropertyStoreBridge.cpp" />
   </ItemGroup>
 
   <ItemGroup>

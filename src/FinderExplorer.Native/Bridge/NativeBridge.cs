@@ -173,4 +173,31 @@ internal static partial class NativeBridge
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool SetForegroundWindow(IntPtr hWnd);
+
+    // -----------------------------------------------------------------------
+    // Preview Handler & Metadata
+    // -----------------------------------------------------------------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RECT
+    {
+        public int left, top, right, bottom;
+    }
+
+    [LibraryImport(DllName, EntryPoint = "FE_Preview_Create", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial IntPtr Preview_Create(string path, IntPtr hwndParent, ref RECT bounds);
+
+    [LibraryImport(DllName, EntryPoint = "FE_Preview_Resize")]
+    internal static partial void Preview_Resize(IntPtr context, ref RECT newBounds);
+
+    [LibraryImport(DllName, EntryPoint = "FE_Preview_Destroy")]
+    internal static partial void Preview_Destroy(IntPtr context);
+
+    [LibraryImport(DllName, EntryPoint = "FE_Property_GetDetails", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial int Property_GetDetails(
+        string path,
+        ref char outType, int typeLen,
+        ref char outDimensions, int dimLen,
+        ref char outDateTaken, int dateLen,
+        ref char outAuthors, int authorLen);
 }

@@ -59,11 +59,27 @@ public sealed class AppSettings
     // -----------------------------------------------------------------------
 
     /// <summary>Minimise to system tray instead of closing when the window is closed.</summary>
-    public bool MinimizeToTray { get; set; } = true;
+    public bool MinimizeToTray { get; set; } = false;
 
     /// <summary>Launch Finder Explorer when Windows starts.</summary>
     public bool RunAtStartup { get; set; } = false;
 
     /// <summary>Register as the default file manager (intercepts folder opens).</summary>
     public bool IsDefaultFileManager { get; set; } = false;
+
+    // -----------------------------------------------------------------------
+    // Nextcloud Integration
+    // -----------------------------------------------------------------------
+
+    /// <summary>Enable Nextcloud integration.</summary>
+    public bool NextcloudEnabled { get; set; } = false;
+
+    /// <summary>Base URL of the Nextcloud instance (e.g., https://cloud.example.com).</summary>
+    public string NextcloudUrl { get; set; } = string.Empty;
+
+    /// <summary>Nextcloud Username.</summary>
+    public string NextcloudUser { get; set; } = string.Empty;
+
+    /// <summary>Nextcloud App Password (generated in Nextcloud Security settings).</summary>
+    public string NextcloudAppPassword { get; set; } = string.Empty;
 }

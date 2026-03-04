@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using FinderExplorer.Core.Services;
 using FinderExplorer.Native.Services;
 using FinderExplorer.ViewModels;
@@ -43,8 +44,8 @@ public partial class App : Application
 
             // System Tray Lifecycle integration
             var lifecycle = Services.GetRequiredService<ILifecycleService>();
-            
-            mainWindow.Opened += (s, e) => 
+
+            mainWindow.Opened += (s, e) =>
             {
                 var hwnd = mainWindow.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
                 if (hwnd != IntPtr.Zero)
@@ -66,9 +67,24 @@ public partial class App : Application
             };
 
             desktop.MainWindow = mainWindow;
+
+            // Force first-show visibility/activation to avoid "doesn't open on first launch".
+            Dispatcher.UIThread.Post(() => EnsureMainWindowVisible(mainWindow), DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(() => EnsureMainWindowVisible(mainWindow), DispatcherPriority.Loaded);
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void EnsureMainWindowVisible(MainWindow mainWindow)
+    {
+        if (!mainWindow.IsVisible)
+            mainWindow.Show();
+
+        if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)
+            mainWindow.WindowState = Avalonia.Controls.WindowState.Normal;
+
+        mainWindow.Activate();
     }
 
     private static void ConfigureServices(IServiceCollection services)
@@ -86,6 +102,10 @@ public partial class App : Application
         services.AddSingleton<ISearchService, EverythingSearchService>();
         services.AddSingleton<IArchiveService, NanaZipService>();
         services.AddSingleton<IThumbnailService, ThumbnailService>();
+        services.AddSingleton<IFileDetailsService, FileDetailsService>();
+
+        // Cloud Integrations
+        services.AddSingleton<INextcloudService, NextcloudService>();
 
         // ViewModels
         services.AddTransient<MainWindowViewModel>();
