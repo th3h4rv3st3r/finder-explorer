@@ -68,6 +68,29 @@ public partial class App : Application
 
             desktop.MainWindow = mainWindow;
 
+            // Inject Windows system accent color into app resources
+            mainWindow.Opened += (_, _) =>
+            {
+                try
+                {
+                    var platformSettings = mainWindow.PlatformSettings;
+                    if (platformSettings != null)
+                    {
+                        var colors = platformSettings.GetColorValues();
+                        var accent = colors.AccentColor1;
+                        var accentBrush = new Avalonia.Media.SolidColorBrush(accent);
+
+                        // Override accent brush resources directly
+                        Resources["AccentFillColorDefaultBrush"] = accentBrush;
+                        Resources["App.Theme.FillColorAttentionBrush"] = accentBrush;
+                    }
+                }
+                catch
+                {
+                    // Fallback to default #60CDFF defined in WinUIColors.axaml
+                }
+            };
+
             // Force first-show visibility/activation to avoid "doesn't open on first launch".
             Dispatcher.UIThread.Post(() => EnsureMainWindowVisible(mainWindow), DispatcherPriority.Background);
             Dispatcher.UIThread.Post(() => EnsureMainWindowVisible(mainWindow), DispatcherPriority.Loaded);

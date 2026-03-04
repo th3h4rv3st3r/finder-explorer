@@ -1,217 +1,349 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ============================================ -->
-    <!--  Finder Explorer Theme — Mica Alt Dark       -->
-    <!--  Inspired by Files Community app             -->
-    <!-- ============================================ -->
+    <!-- ══════════════════════════════════════════════════════════════════
+         Finder Explorer — Complete Theme
+         Base: SimpleTheme (não FluentTheme — evita MinHeight/Padding dinâmico)
+         Tokens: WinUIColors.axaml (WinUI 3 dark theme equivalents)
+         Todos os controles interativos têm templates 100% customizados.
+    ══════════════════════════════════════════════════════════════════ -->
 
-    <!-- Global font (Files-like) -->
+    <!-- Fonte global (Segoe UI Variable = WinUI default) -->
     <Style Selector="Window">
-        <Setter Property="FontFamily" Value="Segoe UI Variable" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="#E7EAF0" />
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI, sans-serif" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI, sans-serif" />
     </Style>
 
-    <Styles.Resources>
-        <SolidColorBrush x:Key="SidebarItemHoverBrush" Color="#18FFFFFF" />
-        <SolidColorBrush x:Key="SidebarItemPressedBrush" Color="#22FFFFFF" />
-        <SolidColorBrush x:Key="SidebarItemSelectedBrush" Color="#24FFFFFF" />
-        <SolidColorBrush x:Key="SidebarItemSelectedBorderBrush" Color="#2FFFFFFF" />
-        <SolidColorBrush x:Key="SidebarSelectionIndicatorBrush" Color="#62BEFF" />
-    </Styles.Resources>
-
-    <!-- ═══════════════ SIDEBAR ═══════════════ -->
-
-    <!-- Section Header (Pinned, Drives, Network...) -->
+    <!-- ══════════════════════════════════════════════════════════════════
+         SIDEBAR SECTION HEADER  ToggleButton.sidebar-section
+         Matches Files SidebarStyles.xaml "NoChildren" / "Collapsed" / "Expanded" states:
+         FontSize=12, FontWeight=SemiBold, Foreground=TextFillColorTertiary
+         No icon shown, text margin 8,0,12,0
+    ══════════════════════════════════════════════════════════════════ -->
     <Style Selector="ToggleButton.sidebar-section">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#A1A9BB" />
-        <Setter Property="Padding" Value="8,0,8,0" />
-        <Setter Property="Margin" Value="8,13,8,0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Margin" Value="4,0,4,0" />
+        <Setter Property="Padding" Value="0" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="MinHeight" Value="24" />
-        <Setter Property="FocusAdorner" Value="{x:Null}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Padding="{TemplateBinding Padding}">
+                <Grid Margin="0,2,0,2">
+                    <!-- Hover overlay with smooth opacity transition -->
+                    <Border x:Name="HoverBd"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Opacity="0">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
                     <ContentPresenter Content="{TemplateBinding Content}"
-                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      HorizontalAlignment="Stretch"
                                       VerticalAlignment="Center" />
-                </Border>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.sidebar-section:pointerover /template/ Border#HoverBd">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="ToggleButton.sidebar-section:pressed /template/ Border#HoverBd">
+        <Setter Property="Opacity" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+
+    <!-- Section label text (matches Files SidebarItem NoChildren/Expanded/Collapsed states) -->
+    <Style Selector="TextBlock.section-label">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="525" />
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI, sans-serif" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="8,0,12,0" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <!-- Chevron for sidebar sections — no rotation/scale (path not centered, causes wobble).
+         Instead, MainWindow uses different icon keys (ChevronDown / ChevronUp) per state. -->
+    <Style Selector="PathIcon.section-chevron">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Expanded section adds 12px bottom margin (matches Files "Expanded" state RootPanel Margin=0,0,0,12) -->
+    <Style Selector="StackPanel.sidebar-section-children">
+        <Setter Property="Margin" Value="0,0,0,0" />
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SIDEBAR NAV ITEM  Button.sidebar-item
+         Matches Files SidebarStyles.xaml:
+         - ElementBorder: Height=32
+         - ElementGrid: Margin=0,2,0,2, CornerRadius=ControlCornerRadius, BorderThickness=1
+         - Columns: 3(pill) | Auto(icon 16px, margin 8,0,0,0) | *(text, margin 12,0,12,2) | Auto(decorator 28px)
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="Button.sidebar-item">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Margin" Value="4,0,4,0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI, sans-serif" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Margin="0,2,0,2">
+                    <!-- Hover overlay with smooth opacity transition -->
+                    <Border x:Name="HoverBd"
+                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Opacity="0">
+                        <Border.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
+                    </Border>
+                    <!-- Selected state border — 1px inset from hover for separation -->
+                    <Border x:Name="SelBd"
+                            Background="Transparent"
+                            BorderBrush="Transparent" BorderThickness="1"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Margin="1" />
+                    <ContentPresenter x:Name="CP"
+                                      Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Grid>
             </ControlTemplate>
         </Setter>
     </Style>
 
-    <Style Selector="ToggleButton.sidebar-section:pointerover">
-        <Setter Property="Background" Value="#05FFFFFF" />
+    <!-- Smooth hover/press/selection transitions -->
+    <Style Selector="Button.sidebar-item:pointerover /template/ Border#HoverBd">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.sidebar-item:pressed /template/ Border#HoverBd">
+        <Setter Property="Opacity" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
     </Style>
 
-    <Style Selector="ToggleButton.sidebar-section:checked">
-        <Setter Property="Background" Value="Transparent" />
+    <!-- Selected → ControlFillColorDefault + ButtonBorderBrush (matches Files "Selected" / "NormalSelected") -->
+    <Style Selector="Button.sidebar-item.selected /template/ Border#SelBd">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
     </Style>
 
-    <Style Selector="ToggleButton.sidebar-section:pressed">
-        <Setter Property="Background" Value="#0AFFFFFF" />
+    <!-- Selected + PointerOver → ControlFillColorSecondary -->
+    <Style Selector="Button.sidebar-item.selected:pointerover /template/ Border#SelBd">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
     </Style>
 
-    <Style Selector="TextBlock.section-header-label">
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="#9CA5B7" />
-        <Setter Property="VerticalAlignment" Value="Center" />
+    <!-- Selected + Pressed → ControlFillColorTertiary -->
+    <Style Selector="Button.sidebar-item.selected:pressed /template/ Border#SelBd">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
     </Style>
 
-    <Style Selector="TextBlock.section-chevron">
-        <Setter Property="Text" Value="⌄" />
-        <Setter Property="FontSize" Value="10" />
-        <Setter Property="Foreground" Value="#8691A7" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Width" Value="14" />
-        <Setter Property="HorizontalAlignment" Value="Right" />
-        <Setter Property="TextAlignment" Value="Right" />
-    </Style>
-
-    <Style Selector="ToggleButton.sidebar-section:checked TextBlock.section-chevron">
-        <Setter Property="Text" Value="⌃" />
-    </Style>
-
-    <!-- Sidebar Item (button) -->
-    <Style Selector="Button.sidebar-item">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#EEF2F8" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="8,0,8,0" />
-        <Setter Property="Height" Value="38" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="FocusAdorner" Value="{x:Null}" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item:pointerover">
-        <Setter Property="Background" Value="{StaticResource SidebarItemHoverBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemHoverBrush}" />
-        <Setter Property="Foreground" Value="#FFFFFF" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item:pressed">
-        <Setter Property="Background" Value="{StaticResource SidebarItemPressedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemPressedBrush}" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item.selected">
-        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemSelectedBorderBrush}" />
-        <Setter Property="Foreground" Value="#FFFFFF" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item.selected:pointerover">
-        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemSelectedBorderBrush}" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item.selected:pressed">
-        <Setter Property="Background" Value="{StaticResource SidebarItemSelectedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource SidebarItemSelectedBorderBrush}" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item:focus-visible">
-        <Setter Property="BorderBrush" Value="Transparent" />
-    </Style>
-
-    <Style Selector="PathIcon.sidebar-pin">
-        <Setter Property="Foreground" Value="#9CA6B8" />
-        <Setter Property="HorizontalAlignment" Value="Right" />
-        <Setter Property="Margin" Value="0,0,10,0" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item:pointerover PathIcon.sidebar-pin">
-        <Setter Property="Foreground" Value="#BEC8D8" />
-    </Style>
-
-    <Style Selector="Button.sidebar-item.selected PathIcon.sidebar-pin">
-        <Setter Property="Foreground" Value="#D0D8E6" />
-    </Style>
-
-    <Style Selector="Border.sidebar-selection-indicator">
+    <!-- Selection Indicator Pill (matches Files SelectionIndicator: 3×16, RadiusX=2, AccentFill) -->
+    <Style Selector="Border.sel-pill">
         <Setter Property="Width" Value="3" />
         <Setter Property="Height" Value="16" />
         <Setter Property="CornerRadius" Value="2" />
-        <Setter Property="Margin" Value="1,0,0,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Background" Value="{StaticResource SidebarSelectionIndicatorBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="2,0,0,0" />
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.sel-pill.on">
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
-    <!-- ═══════════════ TOOLBAR ═══════════════ -->
+    <!-- Pin icon in Pinned items (matches Files SidebarFavouritesPinnedIcon: 12×12) -->
+    <Style Selector="PathIcon.pin-icon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.sidebar-item:pointerover PathIcon.pin-icon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.sidebar-item.selected PathIcon.pin-icon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
 
+    <!-- ══════════════════════════════════════════════════════════════════
+         TOOLBAR  Button.toolbar-btn
+         Matches Files ToolbarButtonStyle — subtle fill hover
+    ══════════════════════════════════════════════════════════════════ -->
     <Style Selector="Button.toolbar-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="30" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd" Background="Transparent"
+                        BorderBrush="Transparent" BorderThickness="1"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Width="30" Height="30">
+                    <ContentPresenter x:Name="CP" Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- Smooth hover transitions -->
+    <Style Selector="Button.toolbar-btn /template/ Border#Bd">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.2" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.toolbar-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </Style>
+    <Style Selector="Button.toolbar-btn:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+    <Style Selector="Button.toolbar-btn:disabled /template/ ContentPresenter#CP">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         BREADCRUMB  Button.breadcrumb-btn
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="Button.breadcrumb-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="5,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd" Background="Transparent"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter x:Name="CP" Content="{TemplateBinding Content}"
+                                      VerticalAlignment="Center" FontSize="14"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- Smooth hover transitions -->
+    <Style Selector="Button.breadcrumb-btn /template/ Border#Bd">
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.breadcrumb-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.breadcrumb-btn:pointerover /template/ ContentPresenter#CP">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.breadcrumb-btn:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         LISTBOX / LISTBOXITEM — zero overhead
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="ListBox">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#AAFFFFFF" />
-        <Setter Property="Padding" Value="8,5" />
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="MinWidth" Value="30" />
-        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ScrollViewer AllowAutoHide="True"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsPresenter />
+                </ScrollViewer>
+            </ControlTemplate>
+        </Setter>
     </Style>
-
-    <Style Selector="Button.toolbar-btn:pointerover">
-        <Setter Property="Background" Value="#12FFFFFF" />
-    </Style>
-
-    <Style Selector="Button.toolbar-btn:pressed">
-        <Setter Property="Background" Value="#18FFFFFF" />
-    </Style>
-
-    <Style Selector="Button.toolbar-btn:disabled">
-        <Setter Property="Foreground" Value="#33FFFFFF" />
-    </Style>
-
-    <!-- ═══════════════ BREADCRUMB ═══════════════ -->
-
-    <Style Selector="Button.breadcrumb-segment">
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Focusable" Value="False" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#99FFFFFF" />
-        <Setter Property="Padding" Value="6,4" />
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  HorizontalAlignment="Stretch" />
+            </ControlTemplate>
+        </Setter>
     </Style>
 
-    <Style Selector="Button.breadcrumb-segment:pointerover">
-        <Setter Property="Foreground" Value="#FFFFFF" />
-        <Setter Property="Background" Value="#10FFFFFF" />
-    </Style>
-
-    <!-- ═══════════════ FILE LIST ═══════════════ -->
-
-    <Style Selector="Border.file-item">
+    <!-- ══════════════════════════════════════════════════════════════════
+         FILE ROW
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="Border.file-row">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+        <Setter Property="Padding" Value="8,4" />
         <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.file-row:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
     </Style>
 
-    <Style Selector="Border.file-item:pointerover">
-        <Setter Property="Background" Value="#0CFFFFFF" />
+    <!-- ══════════════════════════════════════════════════════════════════
+         MISC
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="TextBlock.col-header">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
-
-    <!-- ═══════════════ SCROLLBARS ═══════════════ -->
 
     <Style Selector="ScrollViewer">
         <Setter Property="AllowAutoHide" Value="True" />
+    </Style>
+
+    <!-- ScrollBar thin & subtle -->
+    <Style Selector="ScrollBar">
+        <Setter Property="Opacity" Value="0.5" />
     </Style>
 
 </Styles>

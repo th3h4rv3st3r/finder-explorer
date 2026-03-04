@@ -5,10 +5,10 @@
         x:Class="FinderExplorer.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{CompiledBinding WindowTitle}"
-        Width="1100" Height="700"
-        MinWidth="700" MinHeight="450"
+        Width="1200" Height="800"
+        MinWidth="800" MinHeight="500"
         Icon="avares://FinderExplorer/Assets/app-icon.ico"
-        Background="Transparent"
+        Background="{x:Null}"
         TransparencyLevelHint="Mica"
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaTitleBarHeightHint="40">
@@ -18,442 +18,409 @@
         <conv:FolderOrFileIconConverter x:Key="FolderOrFileIconConverter" />
     </Window.Resources>
 
-    <Grid ColumnDefinitions="255,*">
+    <!-- Main Window Layout -->
+    <Grid x:Name="RootGrid" RowDefinitions="40, 48, *" Background="Transparent">
 
-        <!-- ========== SIDEBAR ========== -->
-        <Border Grid.Column="0"
-                Background="#B71A1E24"
-                BorderBrush="#14FFFFFF"
-                BorderThickness="0,0,1,0">
-            <Grid RowDefinitions="40,*,Auto">
-
-                <!-- Title bar drag region -->
-                <Border Grid.Row="0" IsHitTestVisible="False" />
-
-                <ScrollViewer Grid.Row="1" Padding="0,8,0,0"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Spacing="0" Margin="0,0,0,12">
-
-                        <!-- ── HOME ── -->
-                        <Button Classes="sidebar-item"
-                                Command="{CompiledBinding SidebarNavigateCommand}"
-                                CommandParameter="{CompiledBinding SidebarHome}"
-                                Classes.selected="{CompiledBinding SidebarHome.IsSelected}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0"
-                                        Classes="sidebar-selection-indicator"
-                                        IsVisible="{CompiledBinding SidebarHome.IsSelected}" />
-                                <Image Grid.Column="1"
-                                       Source="{CompiledBinding SidebarHome.IconPath, Converter={StaticResource UriToBitmap}}"
-                                       Width="16" Height="16"
-                                       Margin="4,0,0,0"
-                                       VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2"
-                                           Text="{CompiledBinding SidebarHome.Label}"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <!-- ── PINNED ── -->
-                        <ToggleButton Classes="sidebar-section"
-                                      IsChecked="{CompiledBinding IsFavoritesExpanded}">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Classes="section-header-label" Text="PINNED" />
-                                <TextBlock Grid.Column="1" Classes="section-chevron" />
-                            </Grid>
-                        </ToggleButton>
-
-                        <ItemsControl ItemsSource="{CompiledBinding SidebarFavorites}"
-                                      IsVisible="{CompiledBinding IsFavoritesExpanded}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="5" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                                    <Button Classes="sidebar-item"
-                                            Classes.selected="{CompiledBinding IsSelected}"
-                                            Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}"
-                                            CommandParameter="{CompiledBinding}">
-                                        <Grid ColumnDefinitions="4,Auto,*,20" Height="38">
-                                            <Border Grid.Column="0"
-                                                    Classes="sidebar-selection-indicator"
-                                                    IsVisible="{CompiledBinding IsSelected}" />
-                                            <Image Grid.Column="1"
-                                                   Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}"
-                                                   Width="16" Height="16"
-                                                   Margin="4,0,0,0"
-                                                   VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2"
-                                                       Text="{CompiledBinding Label}"
-                                                       Margin="13,0,12,0"
-                                                       VerticalAlignment="Center" />
-                                            <PathIcon Grid.Column="3"
-                                                      Classes="sidebar-pin"
-                                                      Data="{DynamicResource Icon.Files.App.ThemedIcons.Actions.Pinned.12}"
-                                                      Width="10" Height="10"
-                                                      Margin="0,0,10,0"
-                                                      VerticalAlignment="Center" />
-                                        </Grid>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- ── DRIVES ── -->
-                        <ToggleButton Classes="sidebar-section"
-                                      IsChecked="{CompiledBinding IsVolumesExpanded}">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Classes="section-header-label" Text="DRIVES" />
-                                <TextBlock Grid.Column="1" Classes="section-chevron" />
-                            </Grid>
-                        </ToggleButton>
-
-                        <ItemsControl ItemsSource="{CompiledBinding SidebarVolumes}"
-                                      IsVisible="{CompiledBinding IsVolumesExpanded}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="5" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                                    <Button Classes="sidebar-item"
-                                            Classes.selected="{CompiledBinding IsSelected}"
-                                            Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}"
-                                            CommandParameter="{CompiledBinding}">
-                                        <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                            <Border Grid.Column="0"
-                                                    Classes="sidebar-selection-indicator"
-                                                    IsVisible="{CompiledBinding IsSelected}" />
-                                            <Image Grid.Column="1"
-                                                   Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}"
-                                                   Width="16" Height="16"
-                                                   Margin="4,0,0,0"
-                                                   VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="2"
-                                                       Text="{CompiledBinding Label}"
-                                                       Margin="13,0,12,0"
-                                                       VerticalAlignment="Center" />
-                                        </Grid>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- ── NETWORK ── -->
-                        <ToggleButton Classes="sidebar-section"
-                                      IsChecked="{CompiledBinding IsNetworkExpanded}">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Classes="section-header-label" Text="NETWORK" />
-                                <TextBlock Grid.Column="1" Classes="section-chevron" />
-                            </Grid>
-                        </ToggleButton>
-
-                        <Button Classes="sidebar-item"
-                                IsVisible="{CompiledBinding IsNetworkExpanded}"
-                                Command="{CompiledBinding SidebarNavigateCommand}"
-                                CommandParameter="{CompiledBinding SidebarNetwork}"
-                                Classes.selected="{CompiledBinding SidebarNetwork.IsSelected}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0"
-                                        Classes="sidebar-selection-indicator"
-                                        IsVisible="{CompiledBinding SidebarNetwork.IsSelected}" />
-                                <Image Grid.Column="1"
-                                       Source="{CompiledBinding SidebarNetwork.IconPath, Converter={StaticResource UriToBitmap}}"
-                                       Width="16" Height="16"
-                                       Margin="4,0,0,0"
-                                       VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2"
-                                           Text="Network"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <!-- ── NEXTCLOUD ── -->
-                        <ToggleButton Classes="sidebar-section"
-                                      IsChecked="{CompiledBinding IsNextcloudExpanded}">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Classes="section-header-label" Text="NEXTCLOUD" />
-                                <TextBlock Grid.Column="1" Classes="section-chevron" />
-                            </Grid>
-                        </ToggleButton>
-
-                        <Button Classes="sidebar-item"
-                                IsVisible="{CompiledBinding IsNextcloudExpanded}"
-                                Command="{CompiledBinding SidebarNavigateCommand}"
-                                CommandParameter="{CompiledBinding SidebarNextcloud}"
-                                Classes.selected="{CompiledBinding SidebarNextcloud.IsSelected}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0"
-                                        Classes="sidebar-selection-indicator"
-                                        IsVisible="{CompiledBinding SidebarNextcloud.IsSelected}" />
-                                <Image Grid.Column="1"
-                                       Source="{CompiledBinding SidebarNextcloud.IconPath, Converter={StaticResource UriToBitmap}}"
-                                       Width="16" Height="16"
-                                       Margin="4,0,0,0"
-                                       VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2"
-                                           Text="Nextcloud"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <!-- ── TAGS ── -->
-                        <ToggleButton Classes="sidebar-section"
-                                      IsChecked="{CompiledBinding IsTagsExpanded}">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Grid.Column="0" Classes="section-header-label" Text="TAGS" />
-                                <TextBlock Grid.Column="1" Classes="section-chevron" />
-                            </Grid>
-                        </ToggleButton>
-
-                        <Button Classes="sidebar-item"
-                                IsVisible="{CompiledBinding IsTagsExpanded}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0" Width="3" Background="Transparent" />
-                                <PathIcon Grid.Column="1"
-                                          Data="{DynamicResource Icon.Files.App.ThemedIcons.Status.Tag.12.Filled}"
-                                          Width="14" Height="14"
-                                          Margin="5,0,0,0"
-                                          VerticalAlignment="Center"
-                                          Foreground="#2EA8FF" />
-                                <TextBlock Grid.Column="2"
-                                           Text="Home"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <Button Classes="sidebar-item"
-                                IsVisible="{CompiledBinding IsTagsExpanded}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0" Width="3" Background="Transparent" />
-                                <PathIcon Grid.Column="1"
-                                          Data="{DynamicResource Icon.Files.App.ThemedIcons.Status.Tag.12.Filled}"
-                                          Width="14" Height="14"
-                                          Margin="5,0,0,0"
-                                          VerticalAlignment="Center"
-                                          Foreground="#F08A2B" />
-                                <TextBlock Grid.Column="2"
-                                           Text="Work"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <Button Classes="sidebar-item"
-                                IsVisible="{CompiledBinding IsTagsExpanded}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0" Width="3" Background="Transparent" />
-                                <PathIcon Grid.Column="1"
-                                          Data="{DynamicResource Icon.Files.App.ThemedIcons.Status.Tag.12.Filled}"
-                                          Width="14" Height="14"
-                                          Margin="5,0,0,0"
-                                          VerticalAlignment="Center"
-                                          Foreground="#F2C23B" />
-                                <TextBlock Grid.Column="2"
-                                           Text="Photos"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <Button Classes="sidebar-item"
-                                IsVisible="{CompiledBinding IsTagsExpanded}">
-                            <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                                <Border Grid.Column="0" Width="3" Background="Transparent" />
-                                <PathIcon Grid.Column="1"
-                                          Data="{DynamicResource Icon.Files.App.ThemedIcons.Status.Tag.12.Filled}"
-                                          Width="14" Height="14"
-                                          Margin="5,0,0,0"
-                                          VerticalAlignment="Center"
-                                          Foreground="#8AC743" />
-                                <TextBlock Grid.Column="2"
-                                           Text="Important"
-                                           Margin="13,0,12,0"
-                                           VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
+        <!-- ═══════════════ ROW 0: TITLE BAR & TABS ═══════════════ -->
+        <Border Grid.Row="0" IsHitTestVisible="False">
+            <!-- Background drag area -->
+        </Border>
+        
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto">
+            <!-- App Logo & Tabs (Mockup) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
+                <Image Source="avares://FinderExplorer/Assets/app-icon.ico" Width="16" Height="16" Margin="0,0,12,0"/>
+                
+                <!-- Tab -->
+                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6" Padding="12,6,12,6" Margin="0,4,0,0" VerticalAlignment="Bottom" Height="32">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{DynamicResource Icon.Desktop}" Width="16" Height="16"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="Desktop" FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
                     </StackPanel>
-                </ScrollViewer>
-
-                <!-- Bottom: Settings -->
-                <Border Grid.Row="2"
-                        BorderBrush="#14FFFFFF"
-                        BorderThickness="0,1,0,0"
-                        Padding="4,4">
-                    <Button Classes="sidebar-item">
-                        <Grid ColumnDefinitions="4,Auto,*" Height="38">
-                            <Border Grid.Column="0" Width="3" Background="Transparent" />
-                            <PathIcon Grid.Column="1"
-                                      Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings}"
-                                      Width="16" Height="16"
-                                      Margin="4,0,0,0"
-                                      Foreground="#AAFFFFFF"
-                                      VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2"
-                                       Text="Settings"
-                                       Margin="13,0,12,0"
-                                       VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
                 </Border>
+                
+                <!-- New Tab Button -->
+                <Button Classes="toolbar-btn" Margin="4,4,0,0" Width="32" Height="32" VerticalAlignment="Bottom">
+                    <PathIcon Data="{DynamicResource Icon.Add}" Width="12" Height="12"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══════════════ ROW 1: TOOLBAR & ADDRESS BAR ═══════════════ -->
+        <Border Grid.Row="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto, *">
+                
+                <!-- Left Nav Buttons -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2" Margin="16,0,8,0" VerticalAlignment="Center">
+                    <Button Classes="toolbar-btn" Command="{CompiledBinding NavigateUpCommand}" ToolTip.Tip="Back">
+                        <PathIcon Data="{DynamicResource Icon.NavBack}" Width="14" Height="14" />
+                    </Button>
+                    <Button Classes="toolbar-btn" IsEnabled="False" ToolTip.Tip="Forward">
+                        <PathIcon Data="{DynamicResource Icon.NavForward}" Width="14" Height="14" />
+                    </Button>
+                    <Button Classes="toolbar-btn" Command="{CompiledBinding NavigateUpCommand}" ToolTip.Tip="Up">
+                        <PathIcon Data="{DynamicResource Icon.NavUp}" Width="14" Height="14" />
+                    </Button>
+                    <Button Classes="toolbar-btn" Command="{CompiledBinding RefreshCommand}" ToolTip.Tip="Refresh" Margin="4,0,0,0">
+                        <PathIcon Data="{DynamicResource Icon.Refresh}" Width="14" Height="14" />
+                    </Button>
+                </StackPanel>
+
+                <!-- Address Bar & Actions -->
+                <Grid Grid.Column="1" ColumnDefinitions="*, Auto" Margin="0,0,16,0" VerticalAlignment="Center">
+                    
+                    <!-- Breadcrumb Area -->
+                    <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                            CornerRadius="6" Height="32"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            BorderThickness="1" Margin="0,0,12,0">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <Button Classes="toolbar-btn" Width="30" Height="30" CornerRadius="6,0,0,6">
+                                <PathIcon Data="{DynamicResource Icon.Home}" Width="14" Height="14"/>
+                            </Button>
+                            
+                            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center" Margin="4,0,0,0">
+                                <ItemsControl ItemsSource="{CompiledBinding BreadcrumbSegments}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:BreadcrumbSegmentViewModel">
+                                            <StackPanel Orientation="Horizontal">
+                                                <PathIcon Data="{DynamicResource Icon.NavForward}" Width="8" Height="8"
+                                                          Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="4,0"/>
+                                                <Button Classes="breadcrumb-btn" Content="{CompiledBinding Label}" 
+                                                        Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).BreadcrumbNavigateCommand}" 
+                                                        CommandParameter="{CompiledBinding}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Search & Action Buttons -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                        <Button Classes="toolbar-btn" Width="32" Height="32">
+                            <PathIcon Data="{DynamicResource Icon.View}" Width="14" Height="14"/>
+                        </Button>
+                        <Button Classes="toolbar-btn" Width="32" Height="32">
+                            <PathIcon Data="{DynamicResource Icon.Sort}" Width="14" Height="14"/>
+                        </Button>
+                        <Button Classes="toolbar-btn" Width="32" Height="32">
+                            <PathIcon Data="{DynamicResource Icon.More}" Width="14" Height="14"/>
+                        </Button>
+                        <!-- Search Box -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="6" Width="200" Height="32" Margin="4,0,0,0">
+                            <Grid ColumnDefinitions="*, 32">
+                                <TextBlock Grid.Column="0" Text="Search Desktop"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                           FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Search}" Width="14" Height="14"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
 
-        <!-- ========== MAIN CONTENT ========== -->
-        <Grid Grid.Column="1" RowDefinitions="40,36,*,24">
+        <!-- ═══════════════ ROW 2: MAIN CONTENT AREA ═══════════════ -->
+        <Grid Grid.Row="2" ColumnDefinitions="300, 1, *, 1, 320">
 
-            <!-- Toolbar -->
-            <Border Grid.Row="0"
-                    Background="#08FFFFFF"
-                    BorderBrush="#10FFFFFF"
-                    BorderThickness="0,0,0,1">
-                <Grid ColumnDefinitions="Auto,Auto,*" Margin="4,0">
-                    <!-- Navigation buttons -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal"
-                                Spacing="2" VerticalAlignment="Center">
-                        <Button Classes="toolbar-btn"
-                                Command="{CompiledBinding NavigateUpCommand}"
-                                ToolTip.Tip="Back">
-                            <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavBack}"
-                                      Width="14" Height="14" />
+            <!-- 1) SIDEBAR -->
+            <Grid Grid.Column="0" RowDefinitions="*, Auto" Margin="0,8,0,0">
+                <ScrollViewer Grid.Row="0" Padding="0,0,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="4,0,4,16" Spacing="0">
+                        
+                        <!-- Home Button -->
+                        <Button Classes="sidebar-item" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarHome}" Classes.selected="{CompiledBinding SidebarHome.IsSelected}">
+                            <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarHome.IsSelected}" />
+                                <Image Grid.Column="1" Source="avares://FinderExplorer/Assets/Icons/Home.png" Width="16" Height="16"
+                                       Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                                <TextBlock Grid.Column="2" Text="Home" VerticalAlignment="Center"
+                                           Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                            </Grid>
                         </Button>
-                        <Button Classes="toolbar-btn" IsEnabled="False"
-                                ToolTip.Tip="Forward">
-                            <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavForward}"
-                                      Width="14" Height="14" />
+                        
+                        <!-- Pinned Section -->
+                        <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsFavoritesExpanded}">
+                            <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                                <TextBlock Grid.Column="1" Classes="section-label" Text="Pinned" VerticalAlignment="Center"/>
+                                <Panel Grid.Column="2" Width="8" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsFavoritesExpanded}"/>
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsFavoritesExpanded}"/>
+                                </Panel>
+                            </Grid>
+                        </ToggleButton>
+                        <ItemsControl IsVisible="{CompiledBinding IsFavoritesExpanded}" ItemsSource="{CompiledBinding SidebarFavorites}" Margin="0,2,0,12">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Spacing="0" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                                     <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}"
+                                            Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}" CommandParameter="{CompiledBinding}">
+                                        <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
+                                            <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
+                                            <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                                   Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                            <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
+                                                       Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                            <PathIcon Grid.Column="3" Classes="pin-icon" Data="{DynamicResource Icon.Files.App.ThemedIcons.Actions.Pinned.12}" Width="10" Height="10"/>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Drives Section -->
+                        <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsVolumesExpanded}">
+                            <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                                <TextBlock Grid.Column="1" Classes="section-label" Text="Drives" VerticalAlignment="Center"/>
+                                <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsVolumesExpanded}"/>
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsVolumesExpanded}"/>
+                                </Panel>
+                            </Grid>
+                        </ToggleButton>
+                        <ItemsControl IsVisible="{CompiledBinding IsVolumesExpanded}" ItemsSource="{CompiledBinding SidebarVolumes}" Margin="0,2,0,12">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Spacing="0" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                                     <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}"
+                                            Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}" CommandParameter="{CompiledBinding}">
+                                        <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                                            <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
+                                            <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                                   Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                            <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
+                                                       Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Network Section -->
+                        <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsNetworkExpanded}">
+                            <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                                <TextBlock Grid.Column="1" Classes="section-label" Text="Network" VerticalAlignment="Center"/>
+                                <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsNetworkExpanded}"/>
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsNetworkExpanded}"/>
+                                </Panel>
+                            </Grid>
+                        </ToggleButton>
+                        <Button Classes="sidebar-item" IsVisible="{CompiledBinding IsNetworkExpanded}" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarNetwork}" Classes.selected="{CompiledBinding SidebarNetwork.IsSelected}">
+                            <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNetwork.IsSelected}" />
+                                <Image Grid.Column="1" Source="{CompiledBinding SidebarNetwork.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                       Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                <TextBlock Grid.Column="2" Text="Network" FontSize="14" VerticalAlignment="Center"
+                                           Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
+                            </Grid>
                         </Button>
-                        <Button Classes="toolbar-btn"
-                                Command="{CompiledBinding NavigateUpCommand}"
-                                ToolTip.Tip="Parent folder">
-                            <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavUp}"
-                                      Width="14" Height="14" />
+
+                        <!-- Nextcloud Section -->
+                        <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsNextcloudExpanded}">
+                            <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                                <TextBlock Grid.Column="1" Classes="section-label" Text="Nextcloud" VerticalAlignment="Center"/>
+                                <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsNextcloudExpanded}"/>
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsNextcloudExpanded}"/>
+                                </Panel>
+                            </Grid>
+                        </ToggleButton>
+                        <Button Classes="sidebar-item" IsVisible="{CompiledBinding IsNextcloudExpanded}" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarNextcloud}" Classes.selected="{CompiledBinding SidebarNextcloud.IsSelected}">
+                            <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNextcloud.IsSelected}" />
+                                <Image Grid.Column="1" Source="{CompiledBinding SidebarNextcloud.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                       Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                <TextBlock Grid.Column="2" Text="Nextcloud" FontSize="14" VerticalAlignment="Center"
+                                           Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Tags Section -->
+                        <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsTagsExpanded}">
+                            <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                                <TextBlock Grid.Column="1" Classes="section-label" Text="Tags" VerticalAlignment="Center"/>
+                                <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsTagsExpanded}"/>
+                                    <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsTagsExpanded}"/>
+                                </Panel>
+                            </Grid>
+                        </ToggleButton>
+                        <StackPanel IsVisible="{CompiledBinding IsTagsExpanded}" Spacing="0" Margin="0,2,0,12">
+                            <!-- Color Dots for Tags -->
+                            <Button Classes="sidebar-item">
+                                <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
+                                    <Border Grid.Column="0" Classes="sel-pill" />
+                                    <Ellipse Grid.Column="1" Width="10" Height="10" Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                             Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="Edit file tags" FontSize="14" VerticalAlignment="Center"
+                                               Margin="12,0,12,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <PathIcon Grid.Column="3" Data="{DynamicResource Icon.Edit}" Width="12" Height="12"
+                                              Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                </Grid>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Settings Footer (matches Files MainPage.xaml footer: Height=28, Padding=12,0, Background=Transparent) -->
+                <Border Grid.Row="1" Padding="0,4,0,4">
+                    <StackPanel Spacing="4">
+                        <Border Height="1" HorizontalAlignment="Stretch" Margin="4,0"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1"/>
+                        <Button Classes="sidebar-item">
+                            <Grid ColumnDefinitions="3,Auto,*,Auto" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Settings}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Settings" VerticalAlignment="Center"
+                                           Margin="12,0,12,0"/>
+                            </Grid>
                         </Button>
                     </StackPanel>
-                    <!-- Refresh -->
-                    <Button Grid.Column="1" Classes="toolbar-btn" Margin="4,0,0,0"
-                            Command="{CompiledBinding RefreshCommand}"
-                            ToolTip.Tip="Refresh">
-                        <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.Refresh}"
-                                  Width="14" Height="14" />
-                    </Button>
-                    <!-- Drag area -->
-                    <Border Grid.Column="2" IsHitTestVisible="False" />
-                </Grid>
-            </Border>
+                </Border>
+            </Grid>
 
-            <!-- Breadcrumb / Address Bar -->
-            <Border Grid.Row="1"
-                    Background="#0AFFFFFF"
-                    Margin="8,4,8,0"
-                    CornerRadius="6"
-                    Padding="4,0"
-                    BorderBrush="#10FFFFFF"
-                    BorderThickness="1">
-                <ItemsControl ItemsSource="{CompiledBinding BreadcrumbSegments}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" Spacing="0"
-                                        VerticalAlignment="Center" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:BreadcrumbSegmentViewModel">
-                            <StackPanel Orientation="Horizontal" Spacing="0">
-                                <TextBlock Text="›" Foreground="#44FFFFFF"
-                                           VerticalAlignment="Center"
-                                           FontSize="16" Margin="2,0" />
-                                <Button Classes="breadcrumb-segment"
-                                        Content="{CompiledBinding Label}"
-                                        Command="{CompiledBinding $parent[Window].((vm:MainWindowViewModel)DataContext).BreadcrumbNavigateCommand}"
-                                        CommandParameter="{CompiledBinding}" />
-                            </StackPanel>
+            <!-- SPLITTER 1 -->
+            <GridSplitter Grid.Column="1" Background="Transparent" Width="2" ResizeDirection="Columns" HorizontalAlignment="Center" />
+
+            <!-- 2) FILE LIST AREA -->
+            <Grid Grid.Column="2" RowDefinitions="36,*,28" Margin="0,0,0,0">
+                <!-- Columns Header -->
+                <Border Grid.Row="0" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Margin="12,0,12,0">
+                    <Grid ColumnDefinitions="Auto, *, 60, 140, 100, 100">
+                        <!-- Space for Icon -->
+                        <Border Grid.Column="0" Width="36" />
+                        <TextBlock Grid.Column="1" Text="Name" Classes="col-header" />
+                        <TextBlock Grid.Column="2" Text="File tag" Classes="col-header" />
+                        <TextBlock Grid.Column="3" Text="Date modified" Classes="col-header" />
+                        <TextBlock Grid.Column="4" Text="Type" Classes="col-header" />
+                        <TextBlock Grid.Column="5" Text="Size" Classes="col-header" />
+                    </Grid>
+                </Border>
+
+                <!-- List Content -->
+                <ListBox Grid.Row="1" ItemsSource="{CompiledBinding Items}" SelectedItem="{CompiledBinding SelectedItem}" Margin="12,4,12,0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FileItemViewModel">
+                            <Border Classes="file-row" DoubleTapped="FileItem_DoubleTapped">
+                                <Grid ColumnDefinitions="36, *, 60, 140, 100, 100">
+                                    <PathIcon Grid.Column="0" Data="{CompiledBinding IsDirectory, Converter={StaticResource FolderOrFileIconConverter}}" Width="18" Height="18"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Foreground="{DynamicResource App.Theme.IconBaseBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{CompiledBinding Name}" FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="3" Text="{CompiledBinding Modified, StringFormat='{}{0:dd MMMM yyyy}'}" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="4" Text="{CompiledBinding Icon}" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="5" Text="{CompiledBinding SizeDisplay}" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Border>
+                    </ListBox.ItemTemplate>
+                </ListBox>
 
-            <!-- File List -->
-            <Border Grid.Row="2" Margin="8,4,8,0">
-                <Grid RowDefinitions="28,*">
-                    <!-- Column Headers -->
-                    <Border Grid.Row="0"
-                            BorderBrush="#10FFFFFF"
-                            BorderThickness="0,0,0,1">
-                        <Grid ColumnDefinitions="36,*,90,150" Margin="8,0">
-                            <TextBlock Grid.Column="1" Text="Name"
-                                       Classes="col-header" />
-                            <TextBlock Grid.Column="2" Text="Size"
-                                       Classes="col-header"
-                                       HorizontalAlignment="Right" />
-                            <TextBlock Grid.Column="3" Text="Modified"
-                                       Classes="col-header"
-                                       HorizontalAlignment="Right" />
-                        </Grid>
-                    </Border>
+                <!-- Status Bar -->
+                <Border Grid.Row="2" Background="Transparent" Padding="12,0">
+                    <TextBlock Text="{CompiledBinding ItemCountText}" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                </Border>
+            </Grid>
 
-                    <!-- Items -->
-                    <ListBox Grid.Row="1"
-                             ItemsSource="{CompiledBinding Items}"
-                             SelectedItem="{CompiledBinding SelectedItem}"
-                             Background="Transparent"
-                             BorderThickness="0">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:FileItemViewModel">
-                                <Border Classes="file-item"
-                                        DoubleTapped="FileItem_DoubleTapped">
-                                    <Grid ColumnDefinitions="36,*,90,150">
-                                        <!-- File icon: folder or file -->
-                                        <PathIcon Grid.Column="0"
-                                                  Data="{CompiledBinding IsDirectory, Converter={StaticResource FolderOrFileIconConverter}}"
-                                                  Width="18" Height="18"
-                                                  HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  Foreground="#AAFFFFFF" />
-                                        <TextBlock Grid.Column="1"
-                                                   Text="{CompiledBinding Name}"
-                                                   FontSize="13"
-                                                   Foreground="#DDFFFFFF"
-                                                   VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="2"
-                                                   Text="{CompiledBinding SizeDisplay}"
-                                                   FontSize="12"
-                                                   Foreground="#77FFFFFF"
-                                                   VerticalAlignment="Center"
-                                                   HorizontalAlignment="Right" />
-                                        <TextBlock Grid.Column="3"
-                                                   Text="{CompiledBinding Modified, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}"
-                                                   FontSize="12"
-                                                   Foreground="#77FFFFFF"
-                                                   VerticalAlignment="Center"
-                                                   HorizontalAlignment="Right" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Grid>
-            </Border>
+            <!-- SPLITTER 2 -->
+            <Border Grid.Column="3" Background="{DynamicResource ControlStrokeColorDefaultBrush}" Width="1" HorizontalAlignment="Center" />
+            <GridSplitter Grid.Column="3" Background="Transparent" Width="5" ResizeDirection="Columns" HorizontalAlignment="Center" />
 
-            <!-- Status Bar -->
-            <Border Grid.Row="3"
-                    Background="#08FFFFFF"
-                    BorderBrush="#10FFFFFF"
-                    BorderThickness="0,1,0,0"
-                    Padding="12,0">
-                <TextBlock Text="{CompiledBinding ItemCountText}"
-                           FontSize="11"
-                           Foreground="#66FFFFFF"
-                           VerticalAlignment="Center" />
-            </Border>
+            <!-- 3) DETAILS PANE -->
+            <Grid Grid.Column="4" RowDefinitions="Auto, *, Auto" Margin="20,16,20,20">
+                <!-- Top Toggles -->
+                <Border Grid.Row="0" HorizontalAlignment="Right"
+                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="6" Padding="2">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Details" Classes="segmented-control active" FontSize="12" Padding="16,4"/>
+                        <Button Content="Preview" Classes="segmented-control" FontSize="12" Padding="16,4"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Detailed Info -->
+                <StackPanel Grid.Row="1" Margin="0,48,0,0" Spacing="0">
+                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.Folder}" Width="96" Height="96"
+                              HorizontalAlignment="Center"
+                              Foreground="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,0,24"/>
+                    
+                    <TextBlock Text="Desktop" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,32"/>
+
+                    <TextBlock Text="Item count" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                    <TextBlock Text="6" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="Date Modified" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                    <TextBlock Text="03 March 2026 01:30" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="Date Created" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                    <TextBlock Text="18 February 2024 08:45" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="Item path" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,4"/>
+                    <TextBlock Text="C:\Users\Perseus\Desktop" FontSize="13"
+                               Foreground="{DynamicResource AccentFillColorDefaultBrush}" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="Tags" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="0,0,0,8"/>
+                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="0,4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{DynamicResource Icon.Edit}" Width="14" Height="14"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="Edit file tags" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Properties Button -->
+                <Button Grid.Row="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                        Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="4" Padding="8,6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{DynamicResource Icon.Settings}" Width="14" Height="14"
+                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="Properties" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
         </Grid>
     </Grid>
 </Window>

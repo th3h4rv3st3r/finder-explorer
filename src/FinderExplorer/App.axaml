@@ -3,12 +3,21 @@
              x:Class="FinderExplorer.App"
              RequestedThemeVariant="Dark">
     <Application.Styles>
-        <FluentTheme />
+        <!--
+            Usando SimpleTheme em vez de FluentTheme.
+            O FluentTheme injeta MinHeight, Padding e ControlThemes em Button/ToggleButton
+            que interferem com nossos tamanhos fixos — especialmente em fullscreen onde
+            o Avalonia recomputa a caption area e força re-layout dos controles.
+            O SimpleTheme fornece apenas o mínimo necessário (ScrollViewer, TextBlock, etc.)
+            sem sobrescrever Button/ToggleButton, que definimos inteiramente nos nossos estilos.
+        -->
+        <SimpleTheme />
         <StyleInclude Source="avares://FinderExplorer/Styles/LiquidGlass.axaml" />
     </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://FinderExplorer/Styles/WinUIColors.axaml" />
                 <ResourceInclude Source="avares://FinderExplorer/Styles/FilesThemedIcons.axaml" />
                 <ResourceInclude Source="avares://FinderExplorer/Styles/AppIcons.axaml" />
             </ResourceDictionary.MergedDictionaries>

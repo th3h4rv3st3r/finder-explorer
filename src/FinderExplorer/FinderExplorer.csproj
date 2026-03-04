@@ -9,9 +9,9 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <AssemblyName>FinderExplorer</AssemblyName>
     <RootNamespace>FinderExplorer</RootNamespace>
+    <!-- Ícone do app atualizado para o logo do Files -->
     <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
 
-    <!-- Metadata -->
     <Authors>th3h4rv3st3r</Authors>
     <Company>th3h4rv3st3r</Company>
     <Product>Finder Explorer</Product>
@@ -27,9 +27,15 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.12" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+    <!--
+      SimpleTheme em vez de FluentTheme:
+      O FluentTheme injeta MinHeight/Padding dinâmico em Button/ToggleButton
+      via ControlThemes, o que causa resize em fullscreen e conflito com
+      nossos templates customizados de tamanho fixo.
+    -->
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.12" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
-    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.12">
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>

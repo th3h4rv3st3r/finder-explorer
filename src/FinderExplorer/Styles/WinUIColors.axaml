@@ -1,0 +1,82 @@
+<!--  Finder Explorer — WinUI 3 Dark Theme Token Equivalents for Avalonia
+     Values sourced from microsoft-ui-xaml generic.xaml (Dark theme).
+     Avalonia SimpleTheme does not provide these; we define them manually.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         TEXT FILL COLORS
+    ══════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="TextFillColorPrimaryBrush"    Color="#FFFFFF" />
+    <SolidColorBrush x:Key="TextFillColorSecondaryBrush"  Color="#C5FFFFFF" />
+    <SolidColorBrush x:Key="TextFillColorTertiaryBrush"   Color="#87FFFFFF" />
+    <SolidColorBrush x:Key="TextFillColorDisabledBrush"   Color="#5DFFFFFF" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         ACCENT FILL COLORS  (set from Windows system accent at startup)
+    ══════════════════════════════════════════════════════════════ -->
+    <Color x:Key="SystemAccentColorLight2">#60CDFF</Color>
+    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+
+    <!-- App-specific accent (follows system accent) -->
+    <SolidColorBrush x:Key="App.Theme.FillColorAttentionBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SUBTLE FILL COLORS  (used for hover/pressed on items)
+    ══════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="SubtleFillColorTransparentBrush"  Color="Transparent" />
+    <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush"    Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush"     Color="#0AFFFFFF" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CONTROL FILL COLORS  (used for selected items)
+    ══════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush"     Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush"   Color="#15FFFFFF" />
+    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush"    Color="#0BFFFFFF" />
+    <SolidColorBrush x:Key="ControlFillColorDisabledBrush"    Color="#0BFFFFFF" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CONTROL STROKE COLORS
+    ══════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush"   Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Color="#18FFFFFF" />
+
+    <!-- Button border (used in selected state in Files) -->
+    <SolidColorBrush x:Key="ButtonBorderBrush"                Color="#12FFFFFF" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CARD COLORS
+    ══════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush"    Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush"  Color="#08FFFFFF" />
+    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush"            Color="#19000000" />
+    <SolidColorBrush x:Key="CardStrokeColorDefaultSolidBrush"       Color="#1C1C1C" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         LAYER / BACKGROUND COLORS
+    ══════════════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="LayerOnMicaBaseAltFillColorDefaultBrush"  Color="#733A3A3A" />
+    <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"   Color="#1C1C1C" />
+
+    <!-- App-specific theme brushes (matching Files App.xaml Dark section) -->
+    <SolidColorBrush x:Key="App.Theme.BackgroundBrush"               Color="Transparent" />
+    <SolidColorBrush x:Key="App.Theme.AddressBar.BackgroundBrush"     Color="#733A3A3A" />
+    <SolidColorBrush x:Key="App.Theme.Toolbar.BackgroundBrush"        Color="#08FFFFFF" />
+    <SolidColorBrush x:Key="App.Theme.Sidebar.BackgroundBrush"        Color="#733A3A3A" />
+    <SolidColorBrush x:Key="App.Theme.FileArea.BackgroundBrush"       Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="App.Theme.FileArea.SecondaryBackgroundBrush" Color="#08FFFFFF" />
+    <SolidColorBrush x:Key="App.Theme.InfoPane.BackgroundBrush"       Color="#08FFFFFF" />
+
+    <!-- Icon base color (Dark theme from PathIcons.xaml) -->
+    <Color x:Key="App.Theme.IconBaseColor">#D8F0F0F0</Color>
+    <SolidColorBrush x:Key="App.Theme.IconBaseBrush" Color="{StaticResource App.Theme.IconBaseColor}" />
+
+    <!-- ══════════════════════════════════════════════════════════════
+         CONTROL CORNER RADIUS (WinUI defaults)
+    ══════════════════════════════════════════════════════════════ -->
+    <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="OverlayCornerRadius">8</CornerRadius>
+
+</ResourceDictionary>
