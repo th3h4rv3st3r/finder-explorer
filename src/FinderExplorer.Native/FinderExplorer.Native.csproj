@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -7,9 +8,25 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <!-- C++ DLL: built separately via msbuild/vcxproj, copied to managed output -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <Content Include="$(SolutionDir)bin\x64\Debug\FinderExplorer.Native.Cpp.dll"
+             Condition="'$(Configuration)'=='Debug' and Exists('$(SolutionDir)bin\x64\Debug\FinderExplorer.Native.Cpp.dll')">
+      <CopyToOutputDirectory>PreserveMost</CopyToOutputDirectory>
+      <Link>FinderExplorer.Native.Cpp.dll</Link>
+    </Content>
+    <Content Include="$(SolutionDir)bin\x64\Release\FinderExplorer.Native.Cpp.dll"
+             Condition="'$(Configuration)'=='Release' and Exists('$(SolutionDir)bin\x64\Release\FinderExplorer.Native.Cpp.dll')">
+      <CopyToOutputDirectory>PreserveMost</CopyToOutputDirectory>
+      <Link>FinderExplorer.Native.Cpp.dll</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0-preview.2.25163.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FinderExplorer.Core\FinderExplorer.Core.csproj" />
   </ItemGroup>
 </Project>

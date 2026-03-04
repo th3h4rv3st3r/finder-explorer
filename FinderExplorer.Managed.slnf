@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "FinderExplorer.slnx",
+    "projects": [
+      "src/FinderExplorer.Core/FinderExplorer.Core.csproj",
+      "src/FinderExplorer.Native/FinderExplorer.Native.csproj",
+      "src/FinderExplorer/FinderExplorer.csproj"
+    ]
+  }
+}

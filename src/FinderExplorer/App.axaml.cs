@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using FinderExplorer.Core.Services;
+using FinderExplorer.Native.Services;
 using FinderExplorer.ViewModels;
 using FinderExplorer.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,9 @@ public partial class App : Application
         ConfigureServices(services);
         Services = services.BuildServiceProvider();
 
+        // Load settings synchronously at startup (file is tiny, safe to block here)
+        Services.GetRequiredService<ISettingsService>().LoadAsync().GetAwaiter().GetResult();
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
@@ -43,8 +47,16 @@ public partial class App : Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
+        // Settings — singleton so all VMs share the same instance
+        services.AddSingleton<ISettingsService, JsonSettingsService>();
+
         // Core services
         services.AddSingleton<IFileSystemService, FileSystemService>();
+        services.AddSingleton<IFileWatcherService, FileWatcherService>();
+
+        // Native-backed services
+        services.AddSingleton<ISearchService, EverythingSearchService>();
+        services.AddSingleton<IArchiveService, NanaZipService>();
 
         // ViewModels
         services.AddTransient<MainWindowViewModel>();

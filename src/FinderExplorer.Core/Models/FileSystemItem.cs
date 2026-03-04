@@ -15,6 +15,8 @@ public sealed class FileSystemItem
     public required bool IsDirectory { get; init; }
     public long? Size { get; init; }
     public DateTime LastModified { get; init; }
+    public DateTime DateCreated { get; init; }
+    public FileAttributes Attributes { get; init; }
     public string Extension => IsDirectory ? string.Empty : Path.GetExtension(Name);
 
     public string SizeDisplay => IsDirectory ? "--" : FormatSize(Size ?? 0);

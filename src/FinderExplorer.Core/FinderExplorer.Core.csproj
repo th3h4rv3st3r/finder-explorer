@@ -5,4 +5,5 @@
     <RootNamespace>FinderExplorer.Core</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
+  <!-- System.Text.Json is built-in to .NET 10, no explicit reference needed -->
 </Project>
