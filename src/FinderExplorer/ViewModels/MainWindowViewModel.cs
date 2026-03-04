@@ -51,8 +51,7 @@ public partial class MainWindowViewModel : ObservableObject
         _fileSystem = fileSystem;
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        SidebarHome = new SidebarItemViewModel("Home", userProfile, "🏠",
-            "avares://FinderExplorer/Assets/Icons/Home.png");
+        SidebarHome = new SidebarItemViewModel("Home", userProfile, "🏠", "Icon.Files.App.ThemedIcons.Folder");
 
         InitializeSidebar();
         _ = NavigateToAsync(CurrentPath);
@@ -68,7 +67,7 @@ public partial class MainWindowViewModel : ObservableObject
                 .Select(i => new SidebarItemViewModel(
                     i.Label, i.Path,
                     GetSidebarEmoji(i.IconKey),
-                    GetSidebarIconImage(i.IconKey))));
+                    GetSidebarIconKey(i.IconKey))));
 
         SidebarVolumes = new ObservableCollection<SidebarItemViewModel>(
             sidebarItems
@@ -76,7 +75,7 @@ public partial class MainWindowViewModel : ObservableObject
                 .Select(i => new SidebarItemViewModel(
                     i.Label, i.Path,
                     GetSidebarEmoji(i.IconKey),
-                    GetSidebarIconImage(i.IconKey))));
+                    GetSidebarIconKey(i.IconKey))));
     }
 
     [RelayCommand]
@@ -172,7 +171,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            var fsItems = await _fileSystem.GetItemsAsync(CurrentPath, ct);
+            var fsItems = await _fileSystem.GetItemsAsync(CurrentPath, sort: null, filter: null, ct);
             ct.ThrowIfCancellationRequested();
 
             Items.Clear();
@@ -213,16 +212,16 @@ public partial class MainWindowViewModel : ObservableObject
         _ => "📁"
     };
 
-    private static string? GetSidebarIconImage(string iconKey) => iconKey switch
+    private static string GetSidebarIconKey(string iconKey) => iconKey switch
     {
-        "desktop" => "avares://FinderExplorer/Assets/Icons/Home.png",
-        "documents" => "avares://FinderExplorer/Assets/Icons/Documents_Folder_32.png",
-        "downloads" => "avares://FinderExplorer/Assets/Icons/Downloads_Folder_32.png",
-        "pictures" => null, // TODO: add Pictures icon
-        "music" => "avares://FinderExplorer/Assets/Icons/Music_Folder_32.png",
-        "videos" => "avares://FinderExplorer/Assets/Icons/Videos_Folder_32.png",
-        "drive" => "avares://FinderExplorer/Assets/Icons/Drive_32.png",
-        _ => null
+        "desktop" => "Icon.Desktop",
+        "documents" => "Icon.Documents",
+        "downloads" => "Icon.Downloads",
+        "pictures" => "Icon.Pictures",
+        "music" => "Icon.Music",
+        "videos" => "Icon.Videos",
+        "drive" => "Icon.Drive",
+        _ => "Icon.Files.App.ThemedIcons.Folder"
     };
 
     private static string GetFileIcon(string extension) => extension.ToLowerInvariant() switch

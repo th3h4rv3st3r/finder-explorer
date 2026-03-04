@@ -8,20 +8,15 @@ public partial class SidebarItemViewModel : ObservableObject
 {
     [ObservableProperty] private string _label;
     [ObservableProperty] private string _path;
-    [ObservableProperty] private string _icon;
-    [ObservableProperty] private string? _iconImage;
+    [ObservableProperty] private string _icon; // emoji fallback
+    [ObservableProperty] private string _iconKey; // resource key e.g. "Icon.Home"
     [ObservableProperty] private bool _isSelected;
 
-    public SidebarItemViewModel(string label, string path, string icon, string? iconImage = null)
+    public SidebarItemViewModel(string label, string path, string icon, string iconKey = "Icon.Files.App.ThemedIcons.Folder")
     {
         _label = label;
         _path = path;
         _icon = icon;
-        _iconImage = iconImage;
+        _iconKey = iconKey;
     }
-
-    /// <summary>
-    /// Whether this item has a PNG icon image (vs emoji fallback).
-    /// </summary>
-    public bool HasIconImage => IconImage is not null;
 }
