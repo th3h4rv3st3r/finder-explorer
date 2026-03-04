@@ -150,4 +150,27 @@ internal static partial class NativeBridge
     [LibraryImport(DllName, EntryPoint = "FE_NanaZip_Compress", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial int NanaZip_Compress(
         string[] sources, int count, string destArchive, ProgressCallback? cb);
+    // -----------------------------------------------------------------------
+    // Tray & Lifecycle
+    // -----------------------------------------------------------------------
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    internal delegate void TrayCallback(int actionCode);
+
+    [LibraryImport(DllName, EntryPoint = "FE_Tray_Create", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial void Tray_Create(IntPtr ownerHwnd, string tooltip, TrayCallback callback);
+
+    [LibraryImport(DllName, EntryPoint = "FE_Tray_Destroy")]
+    internal static partial void Tray_Destroy();
+
+    [LibraryImport(DllName, EntryPoint = "FE_Tray_ShowBalloon", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial void Tray_ShowBalloon(string title, string msg, uint timeoutMs);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetForegroundWindow(IntPtr hWnd);
 }

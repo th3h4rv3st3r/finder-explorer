@@ -36,10 +36,36 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
+            var mainWindow = new MainWindow
             {
                 DataContext = Services.GetRequiredService<MainWindowViewModel>()
             };
+
+            // System Tray Lifecycle integration
+            var lifecycle = Services.GetRequiredService<ILifecycleService>();
+            
+            mainWindow.Opened += (s, e) => 
+            {
+                var hwnd = mainWindow.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                if (hwnd != IntPtr.Zero)
+                    lifecycle.InitializeTray(hwnd);
+            };
+
+            mainWindow.Closing += (s, e) =>
+            {
+                var appSettings = Services.GetRequiredService<ISettingsService>().Current;
+                if (appSettings.MinimizeToTray)
+                {
+                    e.Cancel = true; // Prevent window destruction
+                    lifecycle.HideToTray();
+                }
+                else
+                {
+                    lifecycle.RemoveTrayIcon();
+                }
+            };
+
+            desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -53,10 +79,13 @@ public partial class App : Application
         // Core services
         services.AddSingleton<IFileSystemService, FileSystemService>();
         services.AddSingleton<IFileWatcherService, FileWatcherService>();
+        services.AddSingleton<IDefaultFileManagerService, DefaultFileManagerService>();
+        services.AddSingleton<ILifecycleService, LifecycleService>();
 
         // Native-backed services
         services.AddSingleton<ISearchService, EverythingSearchService>();
         services.AddSingleton<IArchiveService, NanaZipService>();
+        services.AddSingleton<IThumbnailService, ThumbnailService>();
 
         // ViewModels
         services.AddTransient<MainWindowViewModel>();

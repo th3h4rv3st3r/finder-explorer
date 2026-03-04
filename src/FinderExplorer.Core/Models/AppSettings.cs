@@ -43,4 +43,27 @@ public sealed class AppSettings
 
     /// <summary>Ascending sort order when true.</summary>
     public bool SortAscending { get; set; } = true;
+
+    // -----------------------------------------------------------------------
+    // Hot Open (spring-loaded folders — open on drag-hover)
+    // -----------------------------------------------------------------------
+
+    /// <summary>Opens a folder automatically when dragging items over it and hovering.</summary>
+    public bool HotOpenEnabled { get; set; } = true;
+
+    /// <summary>Hover duration in milliseconds before a folder spring-opens. Default: 500 ms.</summary>
+    public int HotOpenDelayMs { get; set; } = 500;
+
+    // -----------------------------------------------------------------------
+    // Lifecycle
+    // -----------------------------------------------------------------------
+
+    /// <summary>Minimise to system tray instead of closing when the window is closed.</summary>
+    public bool MinimizeToTray { get; set; } = true;
+
+    /// <summary>Launch Finder Explorer when Windows starts.</summary>
+    public bool RunAtStartup { get; set; } = false;
+
+    /// <summary>Register as the default file manager (intercepts folder opens).</summary>
+    public bool IsDefaultFileManager { get; set; } = false;
 }
