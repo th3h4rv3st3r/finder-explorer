@@ -2,72 +2,85 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ============================================ -->
-    <!--  Liquid Glass Theme — macOS Tahoe inspired   -->
+    <!--  Finder Explorer Theme — Mica Alt Dark       -->
+    <!--  Inspired by Files Community app             -->
     <!-- ============================================ -->
 
+    <!-- Global font -->
     <Style Selector="Window">
-        <Setter Property="Background" Value="#E6181818" />
-        <Setter Property="TransparencyLevelHint" Value="AcrylicBlur" />
-        <Setter Property="ExtendClientAreaToDecorationsHint" Value="True" />
-        <Setter Property="ExtendClientAreaTitleBarHeightHint" Value="40" />
+        <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#DDFFFFFF" />
     </Style>
 
-    <!-- Glass Panel (sidebar, toolbar) -->
-    <Style Selector="Border.glass-panel">
-        <Setter Property="Background" Value="#40FFFFFF" />
-        <Setter Property="BorderBrush" Value="#30FFFFFF" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="12" />
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+
+    <!-- Section Header (Pinned, Drives, Network...) -->
+    <Style Selector="TextBlock.section-header">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#88FFFFFF" />
+        <Setter Property="Padding" Value="16,18,16,6" />
     </Style>
 
-    <Style Selector="Border.glass-panel:pointerover">
-        <Setter Property="Background" Value="#50FFFFFF" />
-    </Style>
-
-    <!-- Sidebar Item -->
+    <!-- Sidebar Item (button) -->
     <Style Selector="Button.sidebar-item">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#CCFFFFFF" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Foreground" Value="#BBFFFFFF" />
+        <Setter Property="Padding" Value="12,7" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="CornerRadius" Value="4" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
         <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="4,1" />
     </Style>
 
     <Style Selector="Button.sidebar-item:pointerover">
-        <Setter Property="Background" Value="#20FFFFFF" />
+        <Setter Property="Background" Value="#15FFFFFF" />
         <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
 
     <Style Selector="Button.sidebar-item:pressed">
-        <Setter Property="Background" Value="#30FFFFFF" />
+        <Setter Property="Background" Value="#20FFFFFF" />
     </Style>
 
     <Style Selector="Button.sidebar-item.selected">
-        <Setter Property="Background" Value="#35FFFFFF" />
+        <Setter Property="Background" Value="#18FFFFFF" />
         <Setter Property="Foreground" Value="#FFFFFF" />
     </Style>
 
-    <!-- Toolbar Button -->
+    <Style Selector="Button.sidebar-item.selected:pointerover">
+        <Setter Property="Background" Value="#22FFFFFF" />
+    </Style>
+
+    <!-- ═══════════════ TOOLBAR ═══════════════ -->
+
     <Style Selector="Button.toolbar-btn">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="#BBFFFFFF" />
-        <Setter Property="Padding" Value="8,6" />
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#AAFFFFFF" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="MinWidth" Value="32" />
+        <Setter Property="MinWidth" Value="30" />
         <Setter Property="MinHeight" Value="28" />
     </Style>
 
     <Style Selector="Button.toolbar-btn:pointerover">
+        <Setter Property="Background" Value="#12FFFFFF" />
+    </Style>
+
+    <Style Selector="Button.toolbar-btn:pressed">
         <Setter Property="Background" Value="#18FFFFFF" />
     </Style>
 
-    <!-- Breadcrumb -->
+    <Style Selector="Button.toolbar-btn:disabled">
+        <Setter Property="Foreground" Value="#33FFFFFF" />
+    </Style>
+
+    <!-- ═══════════════ BREADCRUMB ═══════════════ -->
+
     <Style Selector="Button.breadcrumb-segment">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="#99FFFFFF" />
@@ -79,30 +92,24 @@
 
     <Style Selector="Button.breadcrumb-segment:pointerover">
         <Setter Property="Foreground" Value="#FFFFFF" />
-        <Setter Property="Background" Value="#15FFFFFF" />
+        <Setter Property="Background" Value="#10FFFFFF" />
     </Style>
 
-    <!-- File Item (list row) -->
+    <!-- ═══════════════ FILE LIST ═══════════════ -->
+
     <Style Selector="Border.file-item">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Padding" Value="8,6" />
-        <Setter Property="Margin" Value="2,1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="Margin" Value="0,1" />
     </Style>
 
     <Style Selector="Border.file-item:pointerover">
-        <Setter Property="Background" Value="#12FFFFFF" />
+        <Setter Property="Background" Value="#0CFFFFFF" />
     </Style>
 
-    <!-- Section Label (sidebar headers) -->
-    <Style Selector="TextBlock.section-label">
-        <Setter Property="FontSize" Value="11" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="#66FFFFFF" />
-        <Setter Property="Padding" Value="12,16,12,4" />
-    </Style>
+    <!-- ═══════════════ SCROLLBARS ═══════════════ -->
 
-    <!-- Scrollbar thin style -->
     <Style Selector="ScrollViewer">
         <Setter Property="AllowAutoHide" Value="True" />
     </Style>

@@ -27,7 +27,7 @@ public partial class MainWindowViewModel : ObservableObject
     private ObservableCollection<FileItemViewModel> _items = [];
 
     [ObservableProperty]
-    private ObservableCollection<string> _breadcrumbSegments = [];
+    private ObservableCollection<BreadcrumbSegmentViewModel> _breadcrumbSegments = [];
 
     [ObservableProperty]
     private FileItemViewModel? _selectedItem;
@@ -41,9 +41,19 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLoading;
 
+    [ObservableProperty]
+    private string _itemCountText = "";
+
+    public SidebarItemViewModel SidebarHome { get; }
+
     public MainWindowViewModel(IFileSystemService fileSystem)
     {
         _fileSystem = fileSystem;
+
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        SidebarHome = new SidebarItemViewModel("Home", userProfile, "🏠",
+            "avares://FinderExplorer/Assets/Icons/Home.png");
+
         InitializeSidebar();
         _ = NavigateToAsync(CurrentPath);
     }
@@ -55,12 +65,18 @@ public partial class MainWindowViewModel : ObservableObject
         SidebarFavorites = new ObservableCollection<SidebarItemViewModel>(
             sidebarItems
                 .Where(i => i.Section == Core.Models.SidebarSection.Favorites)
-                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIcon(i.IconKey))));
+                .Select(i => new SidebarItemViewModel(
+                    i.Label, i.Path,
+                    GetSidebarEmoji(i.IconKey),
+                    GetSidebarIconImage(i.IconKey))));
 
         SidebarVolumes = new ObservableCollection<SidebarItemViewModel>(
             sidebarItems
                 .Where(i => i.Section == Core.Models.SidebarSection.Volumes)
-                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIcon(i.IconKey))));
+                .Select(i => new SidebarItemViewModel(
+                    i.Label, i.Path,
+                    GetSidebarEmoji(i.IconKey),
+                    GetSidebarIconImage(i.IconKey))));
     }
 
     [RelayCommand]
@@ -70,7 +86,10 @@ public partial class MainWindowViewModel : ObservableObject
             return;
 
         CurrentPath = path;
-        WindowTitle = $"Finder Explorer — {Path.GetFileName(path)}";
+        var folderName = Path.GetFileName(path);
+        WindowTitle = string.IsNullOrEmpty(folderName)
+            ? $"Finder Explorer — {path}"
+            : $"Finder Explorer — {folderName}";
         UpdateBreadcrumbs();
         await LoadDirectoryAsync();
     }
@@ -108,6 +127,13 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task BreadcrumbNavigateAsync(BreadcrumbSegmentViewModel? segment)
+    {
+        if (segment is not null)
+            await NavigateToAsync(segment.FullPath);
+    }
+
+    [RelayCommand]
     private async Task RefreshAsync()
     {
         await LoadDirectoryAsync();
@@ -125,8 +151,14 @@ public partial class MainWindowViewModel : ObservableObject
     {
         BreadcrumbSegments.Clear();
         var parts = CurrentPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        var accumulated = "";
         foreach (var part in parts)
-            BreadcrumbSegments.Add(part);
+        {
+            accumulated = string.IsNullOrEmpty(accumulated)
+                ? part + Path.DirectorySeparatorChar
+                : Path.Combine(accumulated, part);
+            BreadcrumbSegments.Add(new BreadcrumbSegmentViewModel(part, accumulated));
+        }
     }
 
     private async Task LoadDirectoryAsync()
@@ -156,6 +188,10 @@ public partial class MainWindowViewModel : ObservableObject
                     Icon = fsItem.IsDirectory ? "📁" : GetFileIcon(fsItem.Extension)
                 });
             }
+
+            var dirs = Items.Count(i => i.IsDirectory);
+            var files = Items.Count - dirs;
+            ItemCountText = $"{dirs} pastas, {files} arquivos";
         }
         catch (OperationCanceledException) { /* Expected on rapid navigation */ }
         catch { /* Access denied or other FS error */ }
@@ -165,7 +201,7 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private static string GetSidebarIcon(string iconKey) => iconKey switch
+    private static string GetSidebarEmoji(string iconKey) => iconKey switch
     {
         "desktop" => "🖥",
         "documents" => "📄",
@@ -175,6 +211,18 @@ public partial class MainWindowViewModel : ObservableObject
         "videos" => "🎬",
         "drive" => "💾",
         _ => "📁"
+    };
+
+    private static string? GetSidebarIconImage(string iconKey) => iconKey switch
+    {
+        "desktop" => "avares://FinderExplorer/Assets/Icons/Home.png",
+        "documents" => "avares://FinderExplorer/Assets/Icons/Documents_Folder_32.png",
+        "downloads" => "avares://FinderExplorer/Assets/Icons/Downloads_Folder_32.png",
+        "pictures" => null, // TODO: add Pictures icon
+        "music" => "avares://FinderExplorer/Assets/Icons/Music_Folder_32.png",
+        "videos" => "avares://FinderExplorer/Assets/Icons/Videos_Folder_32.png",
+        "drive" => "avares://FinderExplorer/Assets/Icons/Drive_32.png",
+        _ => null
     };
 
     private static string GetFileIcon(string extension) => extension.ToLowerInvariant() switch
@@ -192,4 +240,19 @@ public partial class MainWindowViewModel : ObservableObject
         ".cs" or ".py" or ".js" or ".ts" or ".html" or ".css" => "💻",
         _ => "📄"
     };
+}
+
+/// <summary>
+/// Represents a clickable breadcrumb segment with its full path for navigation.
+/// </summary>
+public partial class BreadcrumbSegmentViewModel : ObservableObject
+{
+    [ObservableProperty] private string _label;
+    [ObservableProperty] private string _fullPath;
+
+    public BreadcrumbSegmentViewModel(string label, string fullPath)
+    {
+        _label = label;
+        _fullPath = fullPath;
+    }
 }
