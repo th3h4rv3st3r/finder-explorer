@@ -15,9 +15,14 @@ public partial class FileItemViewModel : ObservableObject
     [ObservableProperty] private DateTime _modified;
     [ObservableProperty] private DateTime _created;
     [ObservableProperty] private string _icon = "📄";
+    [ObservableProperty] private string _iconResourceKey = "Icon.Files.App.ThemedIcons.File";
+    [ObservableProperty] private string? _iconImagePath;
 
     public string Extension => IsDirectory ? string.Empty : Path.GetExtension(Name);
     public string SizeDisplay => IsDirectory ? "--" : FormatSize(Size ?? 0);
+    public bool HasImageIcon => !string.IsNullOrWhiteSpace(IconImagePath);
+
+    partial void OnIconImagePathChanged(string? value) => OnPropertyChanged(nameof(HasImageIcon));
 
     private static string FormatSize(long bytes) => bytes switch
     {

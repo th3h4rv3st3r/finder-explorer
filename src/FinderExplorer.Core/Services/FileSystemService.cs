@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -110,6 +111,18 @@ public sealed class FileSystemService : IFileSystemService
             new() { Label = "Music",     Path = Path.Combine(userProfile, "Music"),     IconKey = "music",     Section = SidebarSection.Favorites },
             new() { Label = "Videos",    Path = Path.Combine(userProfile, "Videos"),    IconKey = "videos",    Section = SidebarSection.Favorites },
         };
+
+        var recycleBinPath = TryGetRecycleBinPath();
+        if (!string.IsNullOrWhiteSpace(recycleBinPath))
+        {
+            items.Add(new SidebarItem
+            {
+                Label = "Recycle Bin",
+                Path = recycleBinPath,
+                IconKey = "recyclebin",
+                Section = SidebarSection.Favorites
+            });
+        }
 
         foreach (var drive in DriveInfo.GetDrives())
         {
@@ -245,5 +258,27 @@ public sealed class FileSystemService : IFileSystemService
             ct.ThrowIfCancellationRequested();
             CopyDirectoryRecursive(dir, Path.Combine(destination, Path.GetFileName(dir)), ct);
         }
+    }
+
+    private static string? TryGetRecycleBinPath()
+    {
+        if (!OperatingSystem.IsWindows())
+            return null;
+
+        var sid = WindowsIdentity.GetCurrent().User?.Value;
+        if (string.IsNullOrWhiteSpace(sid))
+            return null;
+
+        foreach (var drive in DriveInfo.GetDrives())
+        {
+            if (!drive.IsReady)
+                continue;
+
+            var candidate = Path.Combine(drive.Name, "$Recycle.Bin", sid);
+            if (Directory.Exists(candidate))
+                return candidate;
+        }
+
+        return null;
     }
 }

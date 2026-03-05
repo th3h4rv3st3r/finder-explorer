@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             x:Class="FinderExplorer.Views.Controls.StatusCenterFlyout"
+             x:DataType="vm:MainWindowViewModel">
+    <Border Classes="status-center-flyout">
+        <StackPanel Spacing="10">
+            <TextBlock Text="Status center"
+                       FontSize="14"
+                       FontWeight="600"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+
+            <Border Height="1" Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Current folder"
+                           Classes="omnibar-hint" />
+                <TextBlock Text="{CompiledBinding CurrentPath}"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Items"
+                           Classes="omnibar-hint" />
+                <TextBlock Text="{CompiledBinding ItemCountText}" />
+            </StackPanel>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Activity"
+                           Classes="omnibar-hint" />
+                <TextBlock Text="Loading files..."
+                           IsVisible="{CompiledBinding IsLoading}" />
+                <TextBlock Text="No background tasks running"
+                           IsVisible="{CompiledBinding !IsLoading}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

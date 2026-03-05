@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <shobjidl.h>
+#include <shellapi.h>
 #include <objbase.h>
 #include "../../include/FinderExplorer.h"
 

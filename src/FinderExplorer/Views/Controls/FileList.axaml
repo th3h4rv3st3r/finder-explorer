@@ -6,7 +6,8 @@
              x:DataType="vm:MainWindowViewModel">
     
     <UserControl.Resources>
-        <conv:FolderOrFileIconConverter x:Key="FolderOrFileIconConverter" />
+        <conv:IconKeyConverter x:Key="IconKeyConverter" />
+        <conv:UriToBitmapConverter x:Key="UriToBitmap" />
     </UserControl.Resources>
 
     <Grid RowDefinitions="36,*,28" Margin="0,0,0,0">
@@ -28,6 +29,7 @@
                  ItemsSource="{CompiledBinding Items}"
                  SelectedItem="{CompiledBinding SelectedItem}"
                  Margin="12,4,12,0"
+                 UseLayoutRounding="True"
                  PointerPressed="FileList_PointerPressed">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:FileItemViewModel">
@@ -35,9 +37,19 @@
                             DoubleTapped="FileItem_DoubleTapped"
                             PointerPressed="FileItem_PointerPressed">
                         <Grid ColumnDefinitions="36, *, 60, 140, 100, 100">
-                            <PathIcon Grid.Column="0" Data="{CompiledBinding IsDirectory, Converter={StaticResource FolderOrFileIconConverter}}" Width="18" Height="18"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center"
-                                      Foreground="{DynamicResource App.Theme.IconBaseBrush}" />
+                            <Grid Grid.Column="0" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center" UseLayoutRounding="True">
+                                <Image Source="{CompiledBinding IconImagePath, Converter={StaticResource UriToBitmap}}"
+                                       Width="16" Height="16"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapInterpolationMode="None"
+                                       IsVisible="{CompiledBinding HasImageIcon}" />
+                                <PathIcon Data="{CompiledBinding IconResourceKey, Converter={StaticResource IconKeyConverter}}"
+                                          Width="16" Height="16"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Foreground="{DynamicResource App.Theme.IconBaseBrush}"
+                                          IsVisible="{CompiledBinding !HasImageIcon}" />
+                            </Grid>
                             <TextBlock Grid.Column="1" Text="{CompiledBinding Name}" FontSize="13"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             <TextBlock Grid.Column="2" Text="" FontSize="12"

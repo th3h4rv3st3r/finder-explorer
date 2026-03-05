@@ -13,6 +13,7 @@
         -->
         <SimpleTheme />
         <StyleInclude Source="avares://FinderExplorer/Styles/LiquidGlass.axaml" />
+        <StyleInclude Source="avares://FinderExplorer/Styles/NavigationToolbar.axaml" />
     </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>

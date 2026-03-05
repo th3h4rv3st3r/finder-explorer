@@ -62,12 +62,12 @@
 
     <!-- App-specific theme brushes (matching Files App.xaml Dark section) -->
     <SolidColorBrush x:Key="App.Theme.BackgroundBrush"               Color="Transparent" />
-    <SolidColorBrush x:Key="App.Theme.AddressBar.BackgroundBrush"     Color="#992B2B32" />
+    <SolidColorBrush x:Key="App.Theme.AddressBar.BackgroundBrush"     Color="#662B2B32" />
     <SolidColorBrush x:Key="App.Theme.Toolbar.BackgroundBrush"        Color="#08FFFFFF" />
-    <SolidColorBrush x:Key="App.Theme.Sidebar.BackgroundBrush"        Color="#992B2B32" />
-    <SolidColorBrush x:Key="App.Theme.FileArea.BackgroundBrush"       Color="#0AFFFFFF" />
+    <SolidColorBrush x:Key="App.Theme.Sidebar.BackgroundBrush"        Color="#662B2B32" />
+    <SolidColorBrush x:Key="App.Theme.FileArea.BackgroundBrush"       Color="#08FFFFFF" />
     <SolidColorBrush x:Key="App.Theme.FileArea.SecondaryBackgroundBrush" Color="#06FFFFFF" />
-    <SolidColorBrush x:Key="App.Theme.InfoPane.BackgroundBrush"       Color="#06FFFFFF" />
+    <SolidColorBrush x:Key="App.Theme.InfoPane.BackgroundBrush"       Color="#08FFFFFF" />
 
     <!-- Icon base color (Dark theme from PathIcons.xaml) -->
     <Color x:Key="App.Theme.IconBaseColor">#D8F0F0F0</Color>

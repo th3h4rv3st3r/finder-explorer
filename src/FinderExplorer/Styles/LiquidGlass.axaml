@@ -274,7 +274,8 @@
 
     <!-- TAB BAR -->
     <Style Selector="Border.tab-header">
-        <Setter Property="Height" Value="32" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="Width" Value="260" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="1,1,1,0" />
@@ -288,13 +289,19 @@
         <Setter Property="Background" Value="{DynamicResource App.Theme.AddressBar.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     </Style>
+    <Style Selector="Border.tab-header.selected:pointerover">
+        <Setter Property="Background" Value="{DynamicResource App.Theme.AddressBar.BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </Style>
 
     <Style Selector="Button.tab-title-btn">
         <Setter Property="Focusable" Value="False" />
-        <Setter Property="MinWidth" Value="100" />
-        <Setter Property="MaxWidth" Value="240" />
-        <Setter Property="Height" Value="30" />
-        <Setter Property="Padding" Value="0,0,8,0" />
+        <Setter Property="MinWidth" Value="176" />
+        <Setter Property="MaxWidth" Value="176" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Margin" Value="-2,0,0,0" />
+        <Setter Property="Padding" Value="0,0,6,0" />
+        <Setter Property="FontSize" Value="12.5" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -310,39 +317,55 @@
             </ControlTemplate>
         </Setter>
     </Style>
-    <Style Selector="Button.tab-title-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-    </Style>
     <Style Selector="Border.tab-header.selected Button.tab-title-btn">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     </Style>
 
     <Style Selector="Button.tab-close-btn">
         <Setter Property="Focusable" Value="False" />
-        <Setter Property="Width" Value="24" />
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="Margin" Value="0,0,6,0" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Opacity" Value="0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
-                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
                 </Border>
             </ControlTemplate>
         </Setter>
     </Style>
     <Style Selector="Border.tab-header.selected Button.tab-close-btn">
         <Setter Property="Opacity" Value="1" />
+        <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
     <Style Selector="Border.tab-header:pointerover Button.tab-close-btn">
         <Setter Property="Opacity" Value="1" />
+        <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
     <Style Selector="Button.tab-close-btn:pointerover /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
     </Style>
     <Style Selector="Button.tab-close-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+    <Style Selector="Path.tab-close-path">
+        <Setter Property="Stroke" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Border.tab-header.selected Path.tab-close-path">
+        <Setter Property="Stroke" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.tab-close-btn:pointerover Path.tab-close-path">
+        <Setter Property="Stroke" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════════════

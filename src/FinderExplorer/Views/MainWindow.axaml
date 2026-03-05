@@ -10,9 +10,9 @@
         MinWidth="900" MinHeight="560"
         Icon="avares://FinderExplorer/Assets/app-icon.ico"
         Background="Transparent"
-        TransparencyLevelHint="Mica"
+        TransparencyLevelHint="Transparent"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="42">
+        ExtendClientAreaTitleBarHeightHint="46">
 
     <Window.KeyBindings>
         <KeyBinding Gesture="Alt+Left" Command="{Binding NavigateBackCommand}" />
@@ -32,7 +32,7 @@
         <conv:BoolToGridLengthConverter x:Key="BoolToDetailsWidth" TrueLength="320" FalseLength="0" />
     </Window.Resources>
 
-    <Grid x:Name="RootGrid" RowDefinitions="40, 48, *" Background="{DynamicResource App.Theme.BackgroundBrush}">
+    <Grid x:Name="RootGrid" RowDefinitions="44, 48, *" Background="{DynamicResource App.Theme.BackgroundBrush}">
         <Border Grid.Row="0" IsHitTestVisible="False">
             <!-- Drag region -->
         </Border>

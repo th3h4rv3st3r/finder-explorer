@@ -8,6 +8,7 @@
 
     <UserControl.Resources>
         <conv:IconKeyConverter x:Key="IconKeyConverter" />
+        <conv:UriToBitmapConverter x:Key="UriToBitmap" />
     </UserControl.Resources>
 
     <Border Margin="8"
@@ -39,11 +40,24 @@
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{CompiledBinding IsDetailsTabSelected}">
                 <StackPanel Margin="16,4,16,16" Spacing="0">
-                    <PathIcon Data="{CompiledBinding DetailsIconResourceKey, Converter={StaticResource IconKeyConverter}}"
-                              Width="96" Height="96"
-                              HorizontalAlignment="Center"
-                              Foreground="{DynamicResource AccentFillColorDefaultBrush}"
-                              Margin="0,4,0,18" />
+                    <Grid Height="280"
+                          MaxWidth="420"
+                          HorizontalAlignment="Stretch"
+                          Margin="0,4,0,18">
+                        <Image Source="{CompiledBinding DetailsIconImagePath, Converter={StaticResource UriToBitmap}}"
+                               HorizontalAlignment="Stretch"
+                               VerticalAlignment="Center"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapInterpolationMode="HighQuality"
+                               IsVisible="{CompiledBinding DetailsHasImageIcon}" />
+                        <PathIcon Data="{CompiledBinding DetailsIconResourceKey, Converter={StaticResource IconKeyConverter}}"
+                                  Width="220"
+                                  Height="220"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                                  IsVisible="{CompiledBinding !DetailsHasImageIcon}" />
+                    </Grid>
 
                     <TextBlock Text="{CompiledBinding DetailsTitleText}" FontSize="22" FontWeight="Bold"
                                HorizontalAlignment="Center" TextAlignment="Center"

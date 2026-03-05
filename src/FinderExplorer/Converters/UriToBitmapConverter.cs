@@ -5,6 +5,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using System;
 using System.Globalization;
+using System.IO;
 
 namespace FinderExplorer.Converters;
 
@@ -21,9 +22,26 @@ public class UriToBitmapConverter : IValueConverter
         {
             try
             {
-                var uri = new Uri(path);
-                using var stream = AssetLoader.Open(uri);
-                return new Bitmap(stream);
+                // App bundled asset.
+                if (path.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var uri = new Uri(path);
+                    using var stream = AssetLoader.Open(uri);
+                    return new Bitmap(stream);
+                }
+
+                // Absolute file path or file:// URI.
+                if (Uri.TryCreate(path, UriKind.Absolute, out var absUri) && absUri.IsFile)
+                {
+                    using var stream = File.OpenRead(absUri.LocalPath);
+                    return new Bitmap(stream);
+                }
+
+                if (File.Exists(path))
+                {
+                    using var stream = File.OpenRead(path);
+                    return new Bitmap(stream);
+                }
             }
             catch
             {

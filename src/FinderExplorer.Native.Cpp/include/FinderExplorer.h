@@ -193,4 +193,16 @@ FINDER_API int FE_Property_GetDetails(
     wchar_t*       outDateTaken,  int dateLen,
     wchar_t*       outAuthors,    int authorLen);
 
+// ---------------------------------------------------------------------------
+// Tray & Lifecycle
+// ---------------------------------------------------------------------------
+
+/// Callback action code:
+/// 0 = open/activate, 1 = double-click, 2 = exit selected.
+typedef void(__stdcall* FE_TrayCallback)(int actionCode);
+
+FINDER_API void FE_Tray_Create(HWND ownerHwnd, const wchar_t* tooltip, FE_TrayCallback callback);
+FINDER_API void FE_Tray_Destroy(void);
+FINDER_API void FE_Tray_ShowBalloon(const wchar_t* title, const wchar_t* msg, uint32_t timeoutMs);
+
 

@@ -21,6 +21,7 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
 {
     // Memory cache: 512 thumbnails @ 128×128×4 bytes ≈ 32 MB max
     private const int MemoryCacheCapacity = 512;
+    private const string ThumbnailCacheVersion = "v2";
 
     private readonly LruCache<string, ThumbnailData> _memCache = new(MemoryCacheCapacity);
     private readonly string _diskCacheDir;
@@ -30,7 +31,7 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
     {
         _diskCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "FinderExplorer", "thumbs");
+            "FinderExplorer", "thumbs-v2");
         Directory.CreateDirectory(_diskCacheDir);
     }
 
@@ -44,7 +45,7 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
         ct.ThrowIfCancellationRequested();
 
         // 1. Memory cache hit
-        string cacheKey = $"{path}|{sizePx}";
+        string cacheKey = $"{ThumbnailCacheVersion}|{path}|{sizePx}";
         if (_memCache.TryGet(cacheKey, out var cached))
             return cached;
 
@@ -86,7 +87,7 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
     {
         // Evict all sizes for this path (iterate common sizes)
         foreach (int sz in new[] { 64, 96, 128, 256 })
-            _memCache.Remove($"{path}|{sz}");
+            _memCache.Remove($"{ThumbnailCacheVersion}|{path}|{sz}");
     }
 
     public void InvalidateAll() => _memCache.Clear();
@@ -126,7 +127,7 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
         long mtime = 0;
         try { mtime = File.GetLastWriteTimeUtc(path).Ticks; } catch { }
 
-        int hash = HashCode.Combine(path.GetHashCode(), mtime, sizePx);
+        int hash = HashCode.Combine(ThumbnailCacheVersion.GetHashCode(), path.GetHashCode(), mtime, sizePx);
         return Path.Combine(_diskCacheDir, $"{(uint)hash:x8}_{sizePx}.bgra");
     }
 

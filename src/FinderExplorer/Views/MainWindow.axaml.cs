@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using FinderExplorer.ViewModels;
 
 namespace FinderExplorer.Views;
@@ -14,7 +15,16 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Opened += (_, _) => ApplyMicaAltBackdrop();
+        Opened += (_, _) =>
+        {
+            ApplyMicaAltBackdrop();
+            // Re-apply after initial composition passes; prevents backdrop reverting on startup.
+            Dispatcher.UIThread.Post(ApplyMicaAltBackdrop, DispatcherPriority.Background);
+            DispatcherTimer.RunOnce(ApplyMicaAltBackdrop, TimeSpan.FromMilliseconds(250));
+            DispatcherTimer.RunOnce(ApplyMicaAltBackdrop, TimeSpan.FromMilliseconds(800));
+            DispatcherTimer.RunOnce(ApplyMicaAltBackdrop, TimeSpan.FromMilliseconds(1600));
+        };
+        Activated += (_, _) => ApplyMicaAltBackdrop();
         // Subscribe to property changes to handle maximized state padding
         this.GetObservable(WindowStateProperty).Subscribe(new WindowStateObserver(this));
     }
@@ -25,8 +35,8 @@ public partial class MainWindow : Window
         // This matches Files/WinUI behavior where maximized windows have a small safe area
         if (RootGrid is not null)
         {
-            RootGrid.Margin = state == WindowState.Maximized
-                ? new Thickness(8, 0, 8, 8)
+            RootGrid.Margin = state is WindowState.Maximized or WindowState.FullScreen
+                ? new Thickness(8, 8, 8, 8)
                 : new Thickness(0);
         }
 
@@ -57,6 +67,7 @@ public partial class MainWindow : Window
         var result = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
         if (result != 0)
         {
+            // Older/limited Windows builds may reject TabbedWindow; fallback to standard Mica.
             backdropType = (int)DwmSystemBackdropType.MainWindow;
             _ = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
         }
