@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             x:Class="FinderExplorer.Views.Controls.TabBar"
+             x:DataType="vm:MainWindowViewModel">
+
+    <Border Background="{DynamicResource App.Theme.Sidebar.BackgroundBrush}"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="4,8,4,0">
+        <Grid ColumnDefinitions="Auto,*,Auto" Height="32">
+            <Button Grid.Column="0" Classes="toolbar-btn" Width="30" Height="30"
+                    VerticalAlignment="Bottom" ToolTip.Tip="Tab actions">
+                <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.Panes.Single}" Width="16" Height="16"
+                          Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                        <MenuItem Header="New tab" InputGesture="Ctrl+T" Command="{CompiledBinding NewTabCommand}">
+                            <MenuItem.Icon>
+                                <PathIcon Data="{DynamicResource Icon.Add}" Width="12" Height="12" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Close tab" InputGesture="Ctrl+W" Command="{CompiledBinding CloseCurrentTabCommand}" />
+                        <MenuItem Header="Close other tabs" Command="{CompiledBinding CloseOtherTabsCommand}" />
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+
+            <ScrollViewer Grid.Column="1"
+                          HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollBarVisibility="Disabled"
+                          Margin="4,0,4,0">
+                <ItemsControl ItemsSource="{CompiledBinding Tabs}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ExplorerTabViewModel">
+                            <Border Classes="tab-header" Classes.selected="{CompiledBinding IsSelected}">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <PathIcon Grid.Column="0" Data="{DynamicResource Icon.Files.App.ThemedIcons.Folder}" Width="14" Height="14"
+                                              Margin="8,0,6,0" VerticalAlignment="Center"
+                                              Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                                    <Button Grid.Column="1" Classes="tab-title-btn" Content="{CompiledBinding Title}"
+                                            Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SelectTabCommand}"
+                                            CommandParameter="{CompiledBinding}" ToolTip.Tip="{CompiledBinding Path}" />
+
+                                    <Button Grid.Column="2" Classes="tab-close-btn" ToolTip.Tip="Close tab (Ctrl+W)"
+                                            Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseTabCommand}"
+                                            CommandParameter="{CompiledBinding}">
+                                        <PathIcon Data="{DynamicResource Icon.Close}" Width="10" Height="10"
+                                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Button Grid.Column="2" Classes="toolbar-btn" Width="30" Height="30"
+                    VerticalAlignment="Bottom" ToolTip.Tip="New tab (Ctrl+T)"
+                    Command="{CompiledBinding NewTabCommand}">
+                <PathIcon Data="{DynamicResource Icon.Add}" Width="12" Height="12" />
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

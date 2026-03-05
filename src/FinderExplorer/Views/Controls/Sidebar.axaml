@@ -1,0 +1,173 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             xmlns:conv="using:FinderExplorer.Converters"
+             x:Class="FinderExplorer.Views.Controls.Sidebar"
+             x:DataType="vm:MainWindowViewModel">
+    
+    <UserControl.Resources>
+        <conv:UriToBitmapConverter x:Key="UriToBitmap" />
+    </UserControl.Resources>
+    
+    <Grid RowDefinitions="*, Auto" Margin="0,8,0,0">
+        <ScrollViewer Grid.Row="0" Padding="0,0,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="4,0,4,16" Spacing="0">
+                
+                <!-- Home Button -->
+                <Button Classes="sidebar-item" ToolTip.Tip="Home" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarHome}" Classes.selected="{CompiledBinding SidebarHome.IsSelected}">
+                    <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                        <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarHome.IsSelected}" />
+                        <Image Grid.Column="1" Source="avares://FinderExplorer/Assets/Icons/Home.png" Width="16" Height="16"
+                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                        <TextBlock Grid.Column="2" Text="Home" VerticalAlignment="Center"
+                                   Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                    </Grid>
+                </Button>
+                
+                <!-- Pinned Section -->
+                <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsFavoritesExpanded}">
+                    <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                        <TextBlock Grid.Column="1" Classes="section-label" Text="Pinned" VerticalAlignment="Center"/>
+                        <Panel Grid.Column="2" Width="8" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsFavoritesExpanded}"/>
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsFavoritesExpanded}"/>
+                        </Panel>
+                    </Grid>
+                </ToggleButton>
+                <ItemsControl IsVisible="{CompiledBinding IsFavoritesExpanded}" ItemsSource="{CompiledBinding SidebarFavorites}" Margin="0,2,0,12">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Spacing="0" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                             <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}" ToolTip.Tip="{CompiledBinding Label}"
+                                    Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}" CommandParameter="{CompiledBinding}">
+                                <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
+                                    <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
+                                    <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                    <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
+                                               Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <PathIcon Grid.Column="3" Classes="pin-icon" Data="{DynamicResource Icon.Files.App.ThemedIcons.Actions.Pinned.12}" Width="10" Height="10"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Drives Section -->
+                <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsVolumesExpanded}">
+                    <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                        <TextBlock Grid.Column="1" Classes="section-label" Text="Drives" VerticalAlignment="Center"/>
+                        <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsVolumesExpanded}"/>
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsVolumesExpanded}"/>
+                        </Panel>
+                    </Grid>
+                </ToggleButton>
+                <ItemsControl IsVisible="{CompiledBinding IsVolumesExpanded}" ItemsSource="{CompiledBinding SidebarVolumes}" Margin="0,2,0,12">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Spacing="0" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                             <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}" ToolTip.Tip="{CompiledBinding Label}"
+                                    Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}" CommandParameter="{CompiledBinding}">
+                                <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                                    <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
+                                    <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                    <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
+                                               Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Network Section -->
+                <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsNetworkExpanded}">
+                    <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                        <TextBlock Grid.Column="1" Classes="section-label" Text="Network" VerticalAlignment="Center"/>
+                        <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsNetworkExpanded}"/>
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsNetworkExpanded}"/>
+                        </Panel>
+                    </Grid>
+                </ToggleButton>
+                <Button Classes="sidebar-item" ToolTip.Tip="Network" IsVisible="{CompiledBinding IsNetworkExpanded}" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarNetwork}" Classes.selected="{CompiledBinding SidebarNetwork.IsSelected}">
+                    <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                        <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNetwork.IsSelected}" />
+                        <Image Grid.Column="1" Source="{CompiledBinding SidebarNetwork.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <TextBlock Grid.Column="2" Text="Network" FontSize="14" VerticalAlignment="Center"
+                                   Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Button>
+
+                <!-- Nextcloud Section -->
+                <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsNextcloudExpanded}">
+                    <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                        <TextBlock Grid.Column="1" Classes="section-label" Text="Nextcloud" VerticalAlignment="Center"/>
+                        <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsNextcloudExpanded}"/>
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsNextcloudExpanded}"/>
+                        </Panel>
+                    </Grid>
+                </ToggleButton>
+                <Button Classes="sidebar-item" ToolTip.Tip="Nextcloud" IsVisible="{CompiledBinding IsNextcloudExpanded}" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarNextcloud}" Classes.selected="{CompiledBinding SidebarNextcloud.IsSelected}">
+                    <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                        <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNextcloud.IsSelected}" />
+                        <Image Grid.Column="1" Source="{CompiledBinding SidebarNextcloud.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        <TextBlock Grid.Column="2" Text="Nextcloud" FontSize="14" VerticalAlignment="Center"
+                                   Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </Button>
+
+                <!-- Tags Section -->
+                <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsTagsExpanded}">
+                    <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
+                        <TextBlock Grid.Column="1" Classes="section-label" Text="Tags" VerticalAlignment="Center"/>
+                        <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsTagsExpanded}"/>
+                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsTagsExpanded}"/>
+                        </Panel>
+                    </Grid>
+                </ToggleButton>
+                <StackPanel IsVisible="{CompiledBinding IsTagsExpanded}" Spacing="0" Margin="0,2,0,12">
+                    <!-- Color Dots for Tags -->
+                    <Button Classes="sidebar-item">
+                        <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
+                            <Border Grid.Column="0" Classes="sel-pill" />
+                            <Ellipse Grid.Column="1" Width="10" Height="10" Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                                     Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="Edit file tags" FontSize="14" VerticalAlignment="Center"
+                                       Margin="12,0,12,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <PathIcon Grid.Column="3" Data="{DynamicResource Icon.Edit}" Width="12" Height="12"
+                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Settings Footer -->
+        <Border Grid.Row="1" Padding="0,4,0,4">
+            <StackPanel Spacing="4">
+                <Border Height="1" HorizontalAlignment="Stretch" Margin="4,0"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1"/>
+                <Button Classes="sidebar-item" ToolTip.Tip="Settings">
+                    <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                        <Border Grid.Column="0" Classes="sel-pill" />
+                        <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Settings}" Width="16" Height="16"
+                                  Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="Settings" VerticalAlignment="Center"
+                                   Margin="12,0,12,2"/>
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+
+</UserControl>

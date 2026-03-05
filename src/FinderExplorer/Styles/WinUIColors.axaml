@@ -57,14 +57,14 @@
     <!-- ══════════════════════════════════════════════════════════════
          LAYER / BACKGROUND COLORS
     ══════════════════════════════════════════════════════════════ -->
-    <SolidColorBrush x:Key="LayerOnMicaBaseAltFillColorDefaultBrush"  Color="#733A3A3A" />
+    <SolidColorBrush x:Key="LayerOnMicaBaseAltFillColorDefaultBrush"  Color="#B52B2B32" />
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"   Color="#1C1C1C" />
 
     <!-- App-specific theme brushes (matching Files App.xaml Dark section) -->
     <SolidColorBrush x:Key="App.Theme.BackgroundBrush"               Color="Transparent" />
-    <SolidColorBrush x:Key="App.Theme.AddressBar.BackgroundBrush"     Color="#733A3A3A" />
+    <SolidColorBrush x:Key="App.Theme.AddressBar.BackgroundBrush"     Color="#B52B2B32" />
     <SolidColorBrush x:Key="App.Theme.Toolbar.BackgroundBrush"        Color="#08FFFFFF" />
-    <SolidColorBrush x:Key="App.Theme.Sidebar.BackgroundBrush"        Color="#733A3A3A" />
+    <SolidColorBrush x:Key="App.Theme.Sidebar.BackgroundBrush"        Color="#B52B2B32" />
     <SolidColorBrush x:Key="App.Theme.FileArea.BackgroundBrush"       Color="#0DFFFFFF" />
     <SolidColorBrush x:Key="App.Theme.FileArea.SecondaryBackgroundBrush" Color="#08FFFFFF" />
     <SolidColorBrush x:Key="App.Theme.InfoPane.BackgroundBrush"       Color="#08FFFFFF" />

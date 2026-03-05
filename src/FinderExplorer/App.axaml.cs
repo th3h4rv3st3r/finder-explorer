@@ -126,6 +126,7 @@ public partial class App : Application
         services.AddSingleton<IArchiveService, NanaZipService>();
         services.AddSingleton<IThumbnailService, ThumbnailService>();
         services.AddSingleton<IFileDetailsService, FileDetailsService>();
+        services.AddSingleton<IShellContextMenuService, ShellContextMenuService>();
 
         // Cloud Integrations
         services.AddSingleton<INextcloudService, NextcloudService>();

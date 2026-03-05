@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="60"
+             x:Class="FinderExplorer.Views.Controls.ContentToolbar"
+             x:DataType="vm:MainWindowViewModel">
+
+    <!-- Content Toolbar (Row 2 equivalent) -->
+    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="8,4"
+            Height="48">
+        
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Primary Commands (Left Side) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                
+                <!-- New Dropdown -->
+                <Button Classes="toolbar-btn" ToolTip.Tip="New (Ctrl+N)">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.Add}" Width="16" Height="16" />
+                        <TextBlock Text="New" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <PathIcon Data="{StaticResource Icon.ChevronDown}" Width="8" Height="8" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Folder">
+                                <MenuItem.Icon>
+                                    <PathIcon Data="{StaticResource Icon.Folder}" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="File">
+                                <MenuItem.Icon>
+                                    <PathIcon Data="{StaticResource Icon.File}" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Rectangle Width="1" Height="20" Fill="{DynamicResource DividerStrokeColorDefaultBrush}" Margin="4,0" VerticalAlignment="Center" />
+
+                <Button Classes="toolbar-btn" ToolTip.Tip="Cut (Ctrl+X)">
+                    <PathIcon Data="{StaticResource Icon.Cut}" Width="16" Height="16" />
+                </Button>
+                
+                <Button Classes="toolbar-btn" ToolTip.Tip="Copy (Ctrl+C)">
+                    <PathIcon Data="{StaticResource Icon.Copy}" Width="16" Height="16" />
+                </Button>
+                
+                <Button Classes="toolbar-btn" ToolTip.Tip="Paste (Ctrl+V)">
+                    <PathIcon Data="{StaticResource Icon.Paste}" Width="16" Height="16" />
+                </Button>
+
+                <Button Classes="toolbar-btn" ToolTip.Tip="Rename (F2)">
+                    <PathIcon Data="{StaticResource Icon.Rename}" Width="16" Height="16" />
+                </Button>
+                
+                <Button Classes="toolbar-btn" ToolTip.Tip="Share">
+                    <PathIcon Data="{StaticResource Icon.Share}" Width="16" Height="16" />
+                </Button>
+
+                <Button Classes="toolbar-btn" ToolTip.Tip="Delete (Del)">
+                    <PathIcon Data="{StaticResource Icon.Delete}" Width="16" Height="16" />
+                </Button>
+
+                <Button Classes="toolbar-btn" ToolTip.Tip="Properties (Alt+Enter)">
+                    <PathIcon Data="{StaticResource Icon.Info}" Width="16" Height="16" />
+                </Button>
+            </StackPanel>
+
+            <!-- View Commands (Right Side) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                
+                <Button Classes="toolbar-btn" ToolTip.Tip="Sort">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.Sort}" Width="16" Height="16" />
+                        <TextBlock Text="Sort" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <PathIcon Data="{StaticResource Icon.ChevronDown}" Width="8" Height="8" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Name" />
+                            <MenuItem Header="Date modified" />
+                            <MenuItem Header="Type" />
+                            <MenuItem Header="Size" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button Classes="toolbar-btn" ToolTip.Tip="Layout">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.View}" Width="16" Height="16" />
+                        <TextBlock Text="Layout" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <PathIcon Data="{StaticResource Icon.ChevronDown}" Width="8" Height="8" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuItem Header="Details" />
+                            <MenuItem Header="List" />
+                            <MenuItem Header="Tiles" />
+                            <MenuItem Header="Grid" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <Button Classes="toolbar-btn" ToolTip.Tip="See more">
+                    <TextBlock Text="•••" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="0,-4,0,0"/>
+                </Button>
+
+            </StackPanel>
+
+        </Grid>
+    </Border>
+
+</UserControl>

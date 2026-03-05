@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             xmlns:conv="using:FinderExplorer.Converters"
+             x:Class="FinderExplorer.Views.Controls.FileList"
+             x:DataType="vm:MainWindowViewModel">
+    
+    <UserControl.Resources>
+        <conv:FolderOrFileIconConverter x:Key="FolderOrFileIconConverter" />
+    </UserControl.Resources>
+
+    <Grid RowDefinitions="36,*,28" Margin="0,0,0,0">
+        <!-- Columns Header -->
+        <Border Grid.Row="0" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Margin="12,0,12,0">
+            <Grid ColumnDefinitions="Auto, *, 60, 140, 100, 100">
+                <!-- Space for Icon -->
+                <Border Grid.Column="0" Width="36" />
+                <TextBlock Grid.Column="1" Text="Name" Classes="col-header" />
+                <TextBlock Grid.Column="2" Text="File tag" Classes="col-header" />
+                <TextBlock Grid.Column="3" Text="Date modified" Classes="col-header" />
+                <TextBlock Grid.Column="4" Text="Type" Classes="col-header" />
+                <TextBlock Grid.Column="5" Text="Size" Classes="col-header" />
+            </Grid>
+        </Border>
+
+        <!-- List Content -->
+        <ListBox Grid.Row="1"
+                 ItemsSource="{CompiledBinding Items}"
+                 SelectedItem="{CompiledBinding SelectedItem}"
+                 Margin="12,4,12,0"
+                 PointerPressed="FileList_PointerPressed">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:FileItemViewModel">
+                    <Border Classes="file-row"
+                            DoubleTapped="FileItem_DoubleTapped"
+                            PointerPressed="FileItem_PointerPressed">
+                        <Grid ColumnDefinitions="36, *, 60, 140, 100, 100">
+                            <PathIcon Grid.Column="0" Data="{CompiledBinding IsDirectory, Converter={StaticResource FolderOrFileIconConverter}}" Width="18" Height="18"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{DynamicResource App.Theme.IconBaseBrush}" />
+                            <TextBlock Grid.Column="1" Text="{CompiledBinding Name}" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Text="" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="{CompiledBinding Modified, StringFormat='{}{0:dd MMMM yyyy}'}" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="{CompiledBinding Icon}" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="5" Text="{CompiledBinding SizeDisplay}" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" Background="Transparent" Padding="12,0">
+            <TextBlock Text="{CompiledBinding ItemCountText}" FontSize="11"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+        </Border>
+    </Grid>
+
+</UserControl>

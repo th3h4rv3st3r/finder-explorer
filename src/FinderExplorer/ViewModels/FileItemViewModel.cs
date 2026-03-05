@@ -2,6 +2,7 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.IO;
 
 namespace FinderExplorer.ViewModels;
 
@@ -12,8 +13,10 @@ public partial class FileItemViewModel : ObservableObject
     [ObservableProperty] private bool _isDirectory;
     [ObservableProperty] private long? _size;
     [ObservableProperty] private DateTime _modified;
+    [ObservableProperty] private DateTime _created;
     [ObservableProperty] private string _icon = "📄";
 
+    public string Extension => IsDirectory ? string.Empty : Path.GetExtension(Name);
     public string SizeDisplay => IsDirectory ? "--" : FormatSize(Size ?? 0);
 
     private static string FormatSize(long bytes) => bytes switch

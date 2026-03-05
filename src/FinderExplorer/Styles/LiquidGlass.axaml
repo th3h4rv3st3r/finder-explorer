@@ -201,8 +201,10 @@
     ══════════════════════════════════════════════════════════════════ -->
     <Style Selector="Button.toolbar-btn">
         <Setter Property="Focusable" Value="False" />
-        <Setter Property="Width" Value="30" />
-        <Setter Property="Height" Value="30" />
+        <Setter Property="Width" Value="NaN" />
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="MinWidth" Value="32" />
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -211,8 +213,7 @@
             <ControlTemplate>
                 <Border x:Name="Bd" Background="Transparent"
                         BorderBrush="Transparent" BorderThickness="1"
-                        CornerRadius="{DynamicResource ControlCornerRadius}"
-                        Width="30" Height="30">
+                        CornerRadius="{DynamicResource ControlCornerRadius}">
                     <ContentPresenter x:Name="CP" Content="{TemplateBinding Content}"
                                       HorizontalAlignment="Center" VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}" />
@@ -220,7 +221,6 @@
             </ControlTemplate>
         </Setter>
     </Style>
-    <!-- Smooth hover transitions -->
     <Style Selector="Button.toolbar-btn /template/ Border#Bd">
         <Setter Property="Transitions">
             <Transitions>
@@ -236,8 +236,113 @@
     <Style Selector="Button.toolbar-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
     </Style>
-    <Style Selector="Button.toolbar-btn:disabled /template/ ContentPresenter#CP">
+    
+    <!-- Navigation Button Style (Back, Forward, Up, Refresh)
+         Matches Files AddressToolbarButtonStyle 36x32, borderless, precise hover -->
+    <Style Selector="Button.nav-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd" Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="{DynamicResource ControlCornerRadius}">
+                    <ContentPresenter x:Name="CP" Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.nav-btn /template/ Border#Bd">
+        <Setter Property="Transitions"><Transitions><BrushTransition Property="Background" Duration="0:0:0.1" /></Transitions></Setter>
+    </Style>
+    <Style Selector="Button.nav-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.nav-btn:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+    <Style Selector="Button.nav-btn:disabled /template/ ContentPresenter#CP">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}" />
+    </Style>
+
+    <!-- TAB BAR -->
+    <Style Selector="Border.tab-header">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+        <Setter Property="CornerRadius" Value="8,8,0,0" />
+    </Style>
+    <Style Selector="Border.tab-header:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </Style>
+    <Style Selector="Border.tab-header.selected">
+        <Setter Property="Background" Value="{DynamicResource App.Theme.AddressBar.BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Button.tab-title-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="MinWidth" Value="100" />
+        <Setter Property="MaxWidth" Value="240" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="0,0,8,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                    <ContentPresenter x:Name="CP"
+                                      Content="{TemplateBinding Content}"
+                                      Foreground="{TemplateBinding Foreground}"
+                                      VerticalAlignment="Center"
+                                      TextBlock.TextTrimming="CharacterEllipsis" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.tab-title-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Border.tab-header.selected Button.tab-title-btn">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.tab-close-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Border.tab-header.selected Button.tab-close-btn">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.tab-header:pointerover Button.tab-close-btn">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.tab-close-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.tab-close-btn:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════════════
@@ -277,6 +382,15 @@
     </Style>
     <Style Selector="Button.breadcrumb-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.search-box">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBox.search-box:focus">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════════════
@@ -326,6 +440,106 @@
     </Style>
     <Style Selector="Border.file-row:pointerover">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected Border.file-row">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected Border.file-row:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         DETAILS PANE
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="Button.segmented-control">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="MinWidth" Value="84" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="16,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <Border x:Name="Bd"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <Border x:Name="SelectionPill"
+                            Width="16"
+                            Height="3"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            CornerRadius="1"
+                            Background="Transparent" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.segmented-control:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.segmented-control.active">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.segmented-control.active /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </Style>
+    <Style Selector="Button.segmented-control.active /template/ Border#SelectionPill">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.details-header">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+    </Style>
+
+    <Style Selector="TextBlock.details-value">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.details-link">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+    </Style>
+    <Style Selector="Button.details-link:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+    </Style>
+    <Style Selector="Button.details-link:pressed">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.details-props-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+    </Style>
+    <Style Selector="Button.details-props-btn:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.details-props-btn:pressed">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}" />
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════════════

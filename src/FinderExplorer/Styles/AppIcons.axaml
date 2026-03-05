@@ -88,9 +88,8 @@
     <!-- Sort -->
     <StreamGeometry x:Key="Icon.Sort">m5.15,2.15c.2-.2.51-.2.71,0,.2.2.2.51,0,.71L3.71,5h9.79c.28,0,.5.22.5.5s-.22.5-.5.5H3.71l2.15,2.15c.2.2.2.51,0,.71-.2.2-.51.2-.71,0l-3-3c-.2-.2-.2-.51,0-.71l3-3Zm5.71,5.71c-.2.2-.2.51,0,.71l3,3c.2.2.2.51,0,.71l-3,3c-.2.2-.51.2-.71,0-.2-.2-.2-.51,0-.71l2.15-2.15H2.5c-.28,0-.5-.22-.5-.5s.22-.5.5-.5h9.79l-2.15-2.15c-.2-.2-.2-.51,0-.71.2-.2.51-.2.71,0Z</StreamGeometry>
 
-    <!-- Info / Details pane -->
     <StreamGeometry x:Key="Icon.Info">m8.05,4c-.41,0-.75.34-.75.75s.34.75.75.75.75-.34.75-.75-.34-.75-.75-.75Zm-.05,2.5c-.28,0-.5.22-.5.5v4.59c.05.23.25.41.5.41.28,0,.5-.22.5-.5v-4.59c-.05-.23-.25-.41-.5-.41ZM8,0C3.58,0,0,3.58,0,8s3.58,8,8,8,8-3.58,8-8S12.42,0,8,0Zm0,15c-3.87,0-7-3.13-7-7S4.13,1,8,1s7,3.13,7,7-3.13,7-7,7Z</StreamGeometry>
-
+    
     <!-- View -->
     <StreamGeometry x:Key="Icon.View">m3 2h10c.55 0 1 .45 1 1v10c0 .55-.45 1-1 1H3c-.55 0-1-.45-1-1V3c0-.55.45-1 1-1Zm0 1v10h10V3H3Zm1 2h8v1H4V5Zm0 3h8v1H4V8Zm0 3h5v1H4v-1Z</StreamGeometry>
 
@@ -111,5 +110,17 @@
 
     <!-- Chevron Up (mirrored ChevronDown for expanded sections) -->
     <StreamGeometry x:Key="Icon.ChevronUp">M12.85,10.65c-.2.2-.51.2-.71,0L8,6.51l-4.15,4.14c-.2.2-.51.2-.71,0-.2-.2-.2-.51,0-.71l4.5-4.5c.2-.2.51-.2.71,0l4.5,4.5c.2.2.2.51,0,.71Z</StreamGeometry>
+
+    <!-- Chevron Right (breadcrumb separator) -->
+    <StreamGeometry x:Key="Icon.ChevronRight">M5.35,3.15c.2-.2.51-.2.71,0L10.5,7.6c.2.2.2.51,0,.71l-4.44,4.54c-.2.2-.51.2-.71,0-.2-.2-.2-.51,0-.71L9.43,7.96,5.35,3.86c-.2-.2-.2-.51,0-.71Z</StreamGeometry>
+
+    <!-- Tab Actions (single pane icon, matches Files App.ThemedIcons.Panes.Single) -->
+    <StreamGeometry x:Key="Icon.TabActions">m3,0C1.34,0,0,1.34,0,3v9c0,1.66,1.34,3,3,3h9c1.66,0,3-1.34,3-3V3c0-1.66-1.34-3-3-3H3ZM1,3c0-1.1.9-2,2-2h9c1.1,0,2,.9,2,2v1H5.5c-.83,0-1.5.67-1.5,1.5v8.5h-1c-1.1,0-2-.9-2-2V3Zm4,11h7c1.1,0,2-.9,2-2v-7H5.5c-.28,0-.5.22-.5.5v8.5Z</StreamGeometry>
+
+    <!-- Details Pane toggle (right panel icon) -->
+    <StreamGeometry x:Key="Icon.DetailsPane">M3,3.75C3,2.784,3.784,2,4.75,2h10.5c.966,0,1.75.784,1.75,1.75v12.5c0,.966-.784,1.75-1.75,1.75H4.75C3.784,18,3,17.216,3,16.25V3.75ZM4.75,3.5a.25.25,0,0,0-.25.25v12.5c0,.138.112.25.25.25h7.75V3.5H4.75ZM13.75,3.5v14h1.5a.25.25,0,0,0,.25-.25V3.75a.25.25,0,0,0-.25-.25h-1.5Z</StreamGeometry>
+
+    <!-- Close tab (X) -->
+    <StreamGeometry x:Key="Icon.Close">M4.09,4.22L8,8.13l3.91-3.91.71.7L8.71,8.84l3.91,3.91-.71.7L8,9.55l-3.91,3.91-.71-.7L7.29,8.84,3.38,4.93l.71-.71Z</StreamGeometry>
 
 </ResourceDictionary>

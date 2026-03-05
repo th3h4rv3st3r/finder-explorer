@@ -1,0 +1,103 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             xmlns:conv="using:FinderExplorer.Converters"
+             x:Class="FinderExplorer.Views.Controls.DetailsPane"
+             x:DataType="vm:MainWindowViewModel">
+
+    <UserControl.Resources>
+        <conv:IconKeyConverter x:Key="IconKeyConverter" />
+    </UserControl.Resources>
+
+    <Border Margin="8"
+            Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+        <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0"
+                    HorizontalAlignment="Center"
+                    Margin="12,12,12,8"
+                    Padding="2"
+                    Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Classes="segmented-control" Classes.active="{CompiledBinding IsDetailsTabSelected}"
+                            Content="Details"
+                            Command="{CompiledBinding ShowDetailsTabCommand}" />
+                    <Button Classes="segmented-control" Classes.active="{CompiledBinding IsPreviewTabSelected}"
+                            Content="Preview"
+                            Command="{CompiledBinding ShowPreviewTabCommand}" />
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          IsVisible="{CompiledBinding IsDetailsTabSelected}">
+                <StackPanel Margin="16,4,16,16" Spacing="0">
+                    <PathIcon Data="{CompiledBinding DetailsIconResourceKey, Converter={StaticResource IconKeyConverter}}"
+                              Width="96" Height="96"
+                              HorizontalAlignment="Center"
+                              Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                              Margin="0,4,0,18" />
+
+                    <TextBlock Text="{CompiledBinding DetailsTitleText}" FontSize="22" FontWeight="Bold"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,24" />
+
+                    <TextBlock Text="{CompiledBinding DetailsMetricLabel}" Classes="details-header" />
+                    <TextBlock Text="{CompiledBinding DetailsMetricValue}" Classes="details-value" Margin="0,0,0,14" />
+
+                    <TextBlock Text="Date Modified" Classes="details-header" />
+                    <TextBlock Text="{CompiledBinding DetailsDateModifiedText}" Classes="details-value" Margin="0,0,0,14" />
+
+                    <TextBlock Text="Date Created" Classes="details-header" />
+                    <TextBlock Text="{CompiledBinding DetailsDateCreatedText}" Classes="details-value" Margin="0,0,0,14" />
+
+                    <TextBlock Text="Item path" Classes="details-header" />
+                    <TextBlock Text="{CompiledBinding DetailsPathText}"
+                               Classes="details-value"
+                               Foreground="{DynamicResource AccentFillColorDefaultBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,14" />
+
+                    <TextBlock Text="Tags" Classes="details-header" Margin="0,0,0,8" />
+                    <Button Classes="details-link" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{DynamicResource Icon.Edit}" Width="14" Height="14"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="Edit file tags" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Classes="details-props-btn"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Command="{CompiledBinding ShowPropertiesCommand}"
+                            Margin="0,14,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{DynamicResource Icon.Settings}" Width="14" Height="14"
+                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="Properties" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Row="1"
+                  IsVisible="{CompiledBinding IsPreviewTabSelected}">
+                <TextBlock Text="No preview available"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            </Grid>
+        </Grid>
+    </Border>
+
+</UserControl>
