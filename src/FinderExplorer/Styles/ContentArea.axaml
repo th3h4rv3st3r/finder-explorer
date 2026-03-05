@@ -339,16 +339,20 @@
                            IsDirectionReversed="True"
                            Minimum="{TemplateBinding Minimum}"
                            Maximum="{TemplateBinding Maximum}"
-                           Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}"
                            ViewportSize="{TemplateBinding ViewportSize}"
                            Orientation="Vertical">
                         <Track.DecreaseButton>
-                            <RepeatButton Classes="custom-vscroll-page-btn" />
+                            <RepeatButton x:Name="PART_PageUpButton"
+                                          Classes="custom-vscroll-page-btn"
+                                          Focusable="False" />
                         </Track.DecreaseButton>
                         <Track.IncreaseButton>
-                            <RepeatButton Classes="custom-vscroll-page-btn" />
+                            <RepeatButton x:Name="PART_PageDownButton"
+                                          Classes="custom-vscroll-page-btn"
+                                          Focusable="False" />
                         </Track.IncreaseButton>
-                        <Thumb x:Name="PART_Thumb"
+                        <Thumb x:Name="thumb"
                                Classes="custom-vscroll-thumb" />
                     </Track>
 
