@@ -30,6 +30,12 @@ public sealed class AppSettings
     /// </summary>
     public bool UseGpuThumbnails { get; set; } = true;
 
+    /// <summary>
+    /// Enables native preview handlers that can use GPU-accelerated rendering paths
+    /// for media/PDF/Office previews when provided by Windows handlers.
+    /// </summary>
+    public bool UseGpuPreview { get; set; } = true;
+
     /// <summary>Thumbnail display size in pixels (square).  Typical values: 64, 128, 256.</summary>
     public int ThumbnailSize { get; set; } = 128;
 
@@ -57,6 +63,9 @@ public sealed class AppSettings
 
     /// <summary>When true, asks for confirmation before moving items to Recycle Bin.</summary>
     public bool ConfirmBeforeDelete { get; set; } = true;
+
+    /// <summary>Preferred volume for media preview controls (1..100).</summary>
+    public int MediaPreviewVolume { get; set; } = 100;
 
     // -----------------------------------------------------------------------
     // Hot Open (spring-loaded folders — open on drag-hover)

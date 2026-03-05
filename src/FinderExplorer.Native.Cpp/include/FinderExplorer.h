@@ -174,6 +174,10 @@ FINDER_API void* FE_Preview_Create(
     HWND           hwndParent,
     const RECT*    bounds);
 
+/// Returns 1 when Windows exposes a native preview handler for the file path.
+/// Returns 0 when no native preview handler can be created.
+FINDER_API int FE_Preview_CanHandle(const wchar_t* path);
+
 /// Resizes the preview handler within the parent window.
 FINDER_API void FE_Preview_Resize(void* context, const RECT* newBounds);
 

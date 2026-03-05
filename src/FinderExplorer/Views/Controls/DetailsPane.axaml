@@ -45,6 +45,7 @@
             </Border>
 
             <ScrollViewer Grid.Row="1"
+                          Classes="details-scroll custom-vertical-scrollbar"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{CompiledBinding IsDetailsTabSelected}">
@@ -106,6 +107,8 @@
             <Grid Grid.Row="1"
                   IsVisible="{CompiledBinding IsPreviewTabSelected}"
                   Margin="12,6,12,12"
+                  Focusable="True"
+                  KeyDown="PreviewGrid_OnKeyDown"
                   RowDefinitions="*,Auto,Auto">
                 <Border Grid.Row="0"
                         Classes="preview-host-shell"
@@ -119,7 +122,7 @@
                         Padding="12"
                         IsVisible="{CompiledBinding IsImagePreviewAvailable}">
                     <ScrollViewer x:Name="ImagePreviewScrollViewer"
-                                  Classes="preview-scroll"
+                                  Classes="preview-scroll custom-vertical-scrollbar"
                                   HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Auto"
                                   SizeChanged="ImagePreviewScrollViewer_OnSizeChanged"
@@ -141,6 +144,25 @@
                     <vlc:VideoView x:Name="MediaPreviewVideoView"
                                    HorizontalAlignment="Stretch"
                                    VerticalAlignment="Stretch" />
+                </Border>
+
+                <Border Grid.Row="0"
+                        Classes="preview-host-shell preview-host-text"
+                        Padding="12"
+                        IsVisible="{CompiledBinding IsTextPreviewAvailable}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Classes="preview-scroll custom-vertical-scrollbar">
+                        <TextBox Text="{CompiledBinding TextPreviewContent}"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 TextWrapping="NoWrap"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 FontFamily="Cascadia Code, Consolas, monospace"
+                                 FontSize="12"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </ScrollViewer>
                 </Border>
 
                 <Border Grid.Row="0"
@@ -228,21 +250,53 @@
                         CornerRadius="6"
                         IsVisible="{CompiledBinding IsMediaPreviewAvailable}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Button Classes="toolbar-btn"
-                                MinWidth="56"
+                        <Button x:Name="MediaPlayPauseButton"
+                                Classes="toolbar-btn media-control-btn"
+                                Width="34"
                                 Height="26"
                                 Click="MediaPlayPause_Click"
-                                Content="Play/Pause" />
-                        <Button Classes="toolbar-btn"
-                                MinWidth="56"
-                                Height="26"
-                                Click="MediaStop_Click"
-                                Content="Stop" />
-                        <Button Classes="toolbar-btn"
-                                MinWidth="56"
+                                ToolTip.Tip="Play/Pause">
+                            <PathIcon x:Name="MediaPlayPauseIcon"
+                                      Width="14"
+                                      Height="14"
+                                      Data="{DynamicResource Icon.Play}" />
+                        </Button>
+                        <Button x:Name="MediaMuteButton"
+                                Classes="toolbar-btn media-control-btn"
+                                Width="34"
                                 Height="26"
                                 Click="MediaMute_Click"
-                                Content="Mute" />
+                                ToolTip.Tip="Mute">
+                            <PathIcon x:Name="MediaMuteIcon"
+                                      Width="14"
+                                      Height="14"
+                                      Data="{DynamicResource Icon.Speaker}" />
+                        </Button>
+                        <Slider x:Name="MediaVolumeSlider"
+                                Classes="media-slider"
+                                Width="90"
+                                Height="26"
+                                Minimum="0"
+                                Maximum="100"
+                                Value="100"
+                                Foreground="{DynamicResource MediaControlAccentBrush}"
+                                ValueChanged="MediaVolumeSlider_OnValueChanged" />
+                        <Slider x:Name="MediaSeekSlider"
+                                Classes="media-slider"
+                                Width="220"
+                                Height="26"
+                                Minimum="0"
+                                Maximum="1"
+                                Value="0"
+                                Foreground="{DynamicResource MediaControlAccentBrush}"
+                                PointerPressed="MediaSeekSlider_OnPointerPressed"
+                                PointerReleased="MediaSeekSlider_OnPointerReleased"
+                                ValueChanged="MediaSeekSlider_OnValueChanged" />
+                        <TextBlock x:Name="MediaTimeText"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   Text="00:00 / 00:00" />
                     </StackPanel>
                 </Border>
 

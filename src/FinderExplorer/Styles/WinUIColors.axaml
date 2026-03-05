@@ -16,11 +16,12 @@
     <!-- ══════════════════════════════════════════════════════════════
          ACCENT FILL COLORS  (set from Windows system accent at startup)
     ══════════════════════════════════════════════════════════════ -->
-    <Color x:Key="SystemAccentColorLight2">#60CDFF</Color>
+    <Color x:Key="SystemAccentColorLight2">#FFFFFFFF</Color>
     <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{DynamicResource SystemAccentColorLight2}" />
 
     <!-- App-specific accent (follows system accent) -->
     <SolidColorBrush x:Key="App.Theme.FillColorAttentionBrush" Color="{DynamicResource SystemAccentColorLight2}" />
+    <SolidColorBrush x:Key="MediaControlAccentBrush" Color="#FFFFFFFF" />
 
     <!-- ══════════════════════════════════════════════════════════════
          SUBTLE FILL COLORS  (used for hover/pressed on items)

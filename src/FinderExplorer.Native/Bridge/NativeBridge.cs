@@ -187,6 +187,9 @@ internal static partial class NativeBridge
     [LibraryImport(DllName, EntryPoint = "FE_Preview_Create", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial IntPtr Preview_Create(string path, IntPtr hwndParent, ref RECT bounds);
 
+    [LibraryImport(DllName, EntryPoint = "FE_Preview_CanHandle", StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial int Preview_CanHandle(string path);
+
     [LibraryImport(DllName, EntryPoint = "FE_Preview_Resize")]
     internal static partial void Preview_Resize(IntPtr context, ref RECT newBounds);
 

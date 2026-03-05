@@ -1,10 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using FinderExplorer.Core.Services;
 using FinderExplorer.ViewModels;
 using LibVLCSharp.Shared;
 using System;
@@ -28,6 +30,17 @@ namespace FinderExplorer.Views.Controls
         private LibVLC? _libVlc;
         private MediaPlayer? _mediaPlayer;
         private string? _activeMediaPath;
+        private long _mediaDurationMs;
+        private int _mediaVolumeBeforeMute = 100;
+        private DispatcherTimer? _mediaLengthProbeTimer;
+        private int _mediaLengthProbeTicks;
+        private bool _isMediaSeekDragging;
+        private bool _isUpdatingMediaSeekFromPlayer;
+        private bool _isUpdatingMediaVolumeFromPlayer;
+        private bool _isMediaMuted;
+        private bool _isMediaPaused;
+        private DateTime _lastResumeAttemptUtc;
+        private bool _isMediaVolumePreferenceLoaded;
 
         public DetailsPane()
         {
@@ -89,7 +102,8 @@ namespace FinderExplorer.Views.Controls
             if (e.PropertyName == nameof(MainWindowViewModel.MediaPreviewFilePath) &&
                 sender is MainWindowViewModel mediaVm)
             {
-                UpdateMediaPreview(mediaVm.MediaPreviewFilePath);
+                if (mediaVm.IsPreviewTabSelected)
+                    UpdateMediaPreview(mediaVm.MediaPreviewFilePath);
             }
 
             if (e.PropertyName == nameof(MainWindowViewModel.IsPreviewTabSelected) &&
@@ -98,7 +112,7 @@ namespace FinderExplorer.Views.Controls
                 if (tabVm.IsPreviewTabSelected)
                     UpdateMediaPreview(tabVm.MediaPreviewFilePath);
                 else
-                    StopMediaPreview();
+                    PauseMediaPreviewIfPlaying();
             }
 
             Dispatcher.UIThread.Post(UpdateImagePreviewLayout, DispatcherPriority.Background);
@@ -316,8 +330,13 @@ namespace FinderExplorer.Views.Controls
                     return;
 
                 _activeMediaPath = mediaPath;
+                _mediaDurationMs = 0;
+                ResetMediaSeekUi();
+                ApplyMediaAudioPreferenceForNewItem();
+                _isMediaPaused = false;
                 using var media = new LibVlcMedia(_libVlc, mediaPath, FromType.FromPath);
                 _mediaPlayer.Play(media);
+                StartMediaLengthProbe();
             }
             catch
             {
@@ -340,7 +359,12 @@ namespace FinderExplorer.Views.Controls
             EnsureLibVlcInitialized();
             _libVlc = new LibVLC();
             _mediaPlayer = new MediaPlayer(_libVlc);
+            AttachMediaPlayerEvents(_mediaPlayer);
             MediaPreviewVideoView.MediaPlayer = _mediaPlayer;
+            UpdateMediaPlayPauseIcon(false);
+            ResetMediaSeekUi();
+            ApplyMediaAudioPreferenceForNewItem();
+            _isMediaPaused = false;
         }
 
         private static void EnsureLibVlcInitialized()
@@ -369,6 +393,31 @@ namespace FinderExplorer.Views.Controls
             {
                 // Ignore media stop failures from native backend.
             }
+
+            _mediaDurationMs = 0;
+            StopMediaLengthProbe();
+            ResetMediaSeekUi();
+            _isMediaPaused = false;
+            _isMediaMuted = false;
+            UpdateMediaPlayPauseIcon(false);
+            UpdateMediaMuteIcon(false);
+        }
+
+        private void PauseMediaPreviewIfPlaying()
+        {
+            if (_mediaPlayer is null || !_mediaPlayer.IsPlaying)
+                return;
+
+            try
+            {
+                _mediaPlayer.SetPause(true);
+                _isMediaPaused = true;
+                UpdateMediaPlayPauseIcon(false);
+            }
+            catch
+            {
+                // Ignore pause failures from native backend.
+            }
         }
 
         private void DisposeMediaPreview()
@@ -378,7 +427,12 @@ namespace FinderExplorer.Views.Controls
             if (MediaPreviewVideoView is not null)
                 MediaPreviewVideoView.MediaPlayer = null;
 
-            _mediaPlayer?.Dispose();
+            if (_mediaPlayer is not null)
+            {
+                DetachMediaPlayerEvents(_mediaPlayer);
+                _mediaPlayer.Dispose();
+            }
+            StopMediaLengthProbe();
             _mediaPlayer = null;
             _libVlc?.Dispose();
             _libVlc = null;
@@ -390,20 +444,613 @@ namespace FinderExplorer.Views.Controls
                 return;
 
             if (_mediaPlayer.IsPlaying)
-                _mediaPlayer.Pause();
-            else
+            {
+                _mediaPlayer.SetPause(true);
+                _isMediaPaused = true;
+                UpdateMediaPlayPauseIcon(false);
+                return;
+            }
+
+            if (_mediaPlayer.State == VLCState.Paused)
+            {
+                _lastResumeAttemptUtc = DateTime.UtcNow;
+                _mediaPlayer.SetPause(false);
+                if (!_mediaPlayer.IsPlaying && _mediaPlayer.State != VLCState.Playing)
+                    _mediaPlayer.Play();
+
+                _isMediaPaused = false;
+                UpdateMediaPlayPauseIcon(true);
+                StartMediaLengthProbe();
+                return;
+            }
+
+            var current = Math.Max(0, _mediaPlayer.Time);
+            var duration = ResolveMediaDurationMs(current);
+            var endedOrStopped = _mediaPlayer.State is VLCState.Ended or VLCState.Stopped;
+            var nearEnd = duration > 0 && current >= Math.Max(0, duration - 300);
+            if (endedOrStopped || nearEnd)
+            {
+                RestartMediaFromBeginning();
+                return;
+            }
+
+            if (_mediaPlayer.Media is not null)
+            {
                 _mediaPlayer.Play();
+                _isMediaPaused = false;
+                UpdateMediaPlayPauseIcon(true);
+                return;
+            }
+
+            if (_libVlc is not null &&
+                !string.IsNullOrWhiteSpace(_activeMediaPath) &&
+                File.Exists(_activeMediaPath))
+            {
+                using var media = new LibVlcMedia(_libVlc, _activeMediaPath, FromType.FromPath);
+                _mediaPlayer.Play(media);
+                _isMediaPaused = false;
+                UpdateMediaPlayPauseIcon(true);
+                StartMediaLengthProbe();
+            }
         }
 
-        private void MediaStop_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-            => StopMediaPreview();
+        private void RestartMediaFromBeginning()
+        {
+            if (_mediaPlayer is null || _libVlc is null || string.IsNullOrWhiteSpace(_activeMediaPath) || !File.Exists(_activeMediaPath))
+                return;
+
+            try
+            {
+                using var media = new LibVlcMedia(_libVlc, _activeMediaPath, FromType.FromPath);
+                _mediaPlayer.Play(media);
+                _isMediaPaused = false;
+                UpdateMediaPlayPauseIcon(true);
+                StartMediaLengthProbe();
+            }
+            catch
+            {
+                // Ignore restart failures from native media backend.
+            }
+        }
 
         private void MediaMute_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             if (_mediaPlayer is null)
                 return;
 
-            _mediaPlayer.Mute = !_mediaPlayer.Mute;
+            var currentlyMuted = _isMediaMuted;
+            if (!currentlyMuted)
+            {
+                _mediaVolumeBeforeMute = Math.Clamp(_mediaPlayer.Volume, 1, 100);
+                _mediaPlayer.Volume = 0;
+                _mediaPlayer.Mute = true;
+                _isMediaMuted = true;
+
+                if (MediaVolumeSlider is not null)
+                {
+                    _isUpdatingMediaVolumeFromPlayer = true;
+                    MediaVolumeSlider.Value = 0;
+                    _isUpdatingMediaVolumeFromPlayer = false;
+                }
+
+                UpdateMediaMuteIcon(true);
+                return;
+            }
+
+            var restoreVolume = Math.Clamp(_mediaVolumeBeforeMute <= 0 ? 50 : _mediaVolumeBeforeMute, 1, 100);
+            _mediaPlayer.Mute = false;
+            _mediaPlayer.Volume = restoreVolume;
+            _isMediaMuted = false;
+            PersistPreferredMediaVolume(restoreVolume);
+
+            if (MediaVolumeSlider is not null)
+            {
+                _isUpdatingMediaVolumeFromPlayer = true;
+                MediaVolumeSlider.Value = restoreVolume;
+                _isUpdatingMediaVolumeFromPlayer = false;
+            }
+
+            UpdateMediaMuteIcon(false);
+        }
+
+        private void PreviewGrid_OnKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm ||
+                !vm.IsPreviewTabSelected ||
+                !vm.IsMediaPreviewAvailable ||
+                _mediaPlayer is null)
+            {
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Key.Space:
+                    MediaPlayPause_Click(sender, e);
+                    e.Handled = true;
+                    break;
+                case Key.J:
+                    SeekMediaBy(-10_000);
+                    e.Handled = true;
+                    break;
+                case Key.L:
+                    SeekMediaBy(10_000);
+                    e.Handled = true;
+                    break;
+                case Key.Up:
+                    AdjustMediaVolume(5);
+                    e.Handled = true;
+                    break;
+                case Key.Down:
+                    AdjustMediaVolume(-5);
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void MediaVolumeSlider_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+        {
+            if (_mediaPlayer is null || _isUpdatingMediaVolumeFromPlayer)
+                return;
+
+            var newVolume = (int)Math.Round(Math.Clamp(e.NewValue, 0, 100));
+            _mediaPlayer.Volume = newVolume;
+            _isMediaMuted = newVolume <= 0;
+            _mediaPlayer.Mute = _isMediaMuted;
+
+            if (newVolume > 0)
+            {
+                _mediaVolumeBeforeMute = newVolume;
+                PersistPreferredMediaVolume(newVolume);
+            }
+
+            UpdateMediaMuteIcon(_isMediaMuted);
+        }
+
+        private void MediaSeekSlider_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+            => _isMediaSeekDragging = true;
+
+        private void MediaSeekSlider_OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            _isMediaSeekDragging = false;
+
+            if (_mediaPlayer is null || MediaSeekSlider is null)
+                return;
+
+            var total = ResolveMediaDurationMs(Math.Max(0, _mediaPlayer.Time));
+            if (total <= 0)
+                return;
+
+            var target = (long)Math.Clamp(MediaSeekSlider.Value, 0, total);
+            _mediaPlayer.Time = target;
+            UpdateMediaTimeText(target, total);
+        }
+
+        private void MediaSeekSlider_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e)
+        {
+            if (_isUpdatingMediaSeekFromPlayer || _mediaPlayer is null)
+                return;
+
+            var total = ResolveMediaDurationMs();
+            if (total <= 0)
+                return;
+
+            var previewMs = (long)Math.Clamp(e.NewValue, 0, total);
+            if (_isMediaSeekDragging)
+            {
+                UpdateMediaTimeText(previewMs, total);
+                return;
+            }
+
+            _mediaPlayer.Time = previewMs;
+            UpdateMediaTimeText(previewMs, total);
+        }
+
+        private void SeekMediaBy(long deltaMs)
+        {
+            if (_mediaPlayer is null)
+                return;
+
+            var current = Math.Max(0, _mediaPlayer.Time);
+            var duration = ResolveMediaDurationMs(current);
+            var target = current + deltaMs;
+            if (duration > 0)
+                target = Math.Clamp(target, 0, duration);
+            else
+                target = Math.Max(0, target);
+
+            _mediaPlayer.Time = target;
+            if (MediaSeekSlider is not null)
+            {
+                _isUpdatingMediaSeekFromPlayer = true;
+                MediaSeekSlider.Value = target;
+                _isUpdatingMediaSeekFromPlayer = false;
+            }
+
+            UpdateMediaTimeText(target, duration);
+        }
+
+        private void AdjustMediaVolume(int delta)
+        {
+            if (_mediaPlayer is null)
+                return;
+
+            var nextVolume = Math.Clamp(_mediaPlayer.Volume + delta, 0, 100);
+            _mediaPlayer.Volume = nextVolume;
+            _isMediaMuted = nextVolume <= 0;
+            _mediaPlayer.Mute = _isMediaMuted;
+
+            if (nextVolume > 0)
+            {
+                _mediaVolumeBeforeMute = nextVolume;
+                PersistPreferredMediaVolume(nextVolume);
+            }
+
+            if (MediaVolumeSlider is not null)
+            {
+                _isUpdatingMediaVolumeFromPlayer = true;
+                MediaVolumeSlider.Value = nextVolume;
+                _isUpdatingMediaVolumeFromPlayer = false;
+            }
+
+            UpdateMediaMuteIcon(_isMediaMuted);
+        }
+
+        private void ApplyMediaAudioPreferenceForNewItem()
+        {
+            if (_mediaPlayer is null)
+                return;
+
+            EnsureMediaVolumePreferenceLoaded();
+            var preferredVolume = Math.Clamp(_mediaVolumeBeforeMute, 1, 100);
+            _mediaPlayer.Mute = false;
+            _mediaPlayer.Volume = preferredVolume;
+            _mediaVolumeBeforeMute = preferredVolume;
+            _isMediaMuted = false;
+
+            if (MediaVolumeSlider is not null)
+            {
+                _isUpdatingMediaVolumeFromPlayer = true;
+                MediaVolumeSlider.Value = preferredVolume;
+                _isUpdatingMediaVolumeFromPlayer = false;
+            }
+
+            UpdateMediaMuteIcon(false);
+        }
+
+        private void EnsureMediaVolumePreferenceLoaded()
+        {
+            if (_isMediaVolumePreferenceLoaded)
+                return;
+
+            _isMediaVolumePreferenceLoaded = true;
+            var settings = TryGetSettingsService();
+            if (settings is null)
+                return;
+
+            _mediaVolumeBeforeMute = Math.Clamp(settings.Current.MediaPreviewVolume, 1, 100);
+        }
+
+        private void PersistPreferredMediaVolume(int volume)
+        {
+            var settings = TryGetSettingsService();
+            if (settings is null)
+                return;
+
+            var sanitized = Math.Clamp(volume, 1, 100);
+            if (settings.Current.MediaPreviewVolume == sanitized)
+                return;
+
+            settings.Current.MediaPreviewVolume = sanitized;
+            _ = settings.SaveAsync();
+        }
+
+        private static ISettingsService? TryGetSettingsService()
+        {
+            try
+            {
+                return App.Services.GetService(typeof(ISettingsService)) as ISettingsService;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void AttachMediaPlayerEvents(MediaPlayer player)
+        {
+            player.Playing += MediaPlayerOnPlaying;
+            player.Paused += MediaPlayerOnPaused;
+            player.Stopped += MediaPlayerOnStopped;
+            player.EndReached += MediaPlayerOnEndReached;
+            player.TimeChanged += MediaPlayerOnTimeChanged;
+            player.LengthChanged += MediaPlayerOnLengthChanged;
+        }
+
+        private void DetachMediaPlayerEvents(MediaPlayer player)
+        {
+            player.Playing -= MediaPlayerOnPlaying;
+            player.Paused -= MediaPlayerOnPaused;
+            player.Stopped -= MediaPlayerOnStopped;
+            player.EndReached -= MediaPlayerOnEndReached;
+            player.TimeChanged -= MediaPlayerOnTimeChanged;
+            player.LengthChanged -= MediaPlayerOnLengthChanged;
+        }
+
+        private void MediaPlayerOnPlaying(object? sender, EventArgs e)
+        {
+            if (sender is not MediaPlayer player)
+                return;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                _lastResumeAttemptUtc = DateTime.MinValue;
+                _isMediaPaused = false;
+                if (_mediaPlayer is not null && _mediaPlayer.Volume > 0)
+                    _isMediaMuted = false;
+
+                UpdateMediaPlayPauseIcon(true);
+                UpdateMediaMuteIcon(_isMediaMuted);
+                StartMediaLengthProbe();
+            });
+        }
+
+        private void MediaPlayerOnPaused(object? sender, EventArgs e)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                // Ignore stale paused notifications right after explicit resume clicks.
+                if (_lastResumeAttemptUtc != DateTime.MinValue &&
+                    DateTime.UtcNow - _lastResumeAttemptUtc < TimeSpan.FromMilliseconds(300))
+                {
+                    return;
+                }
+
+                _isMediaPaused = true;
+                UpdateMediaPlayPauseIcon(false);
+            });
+        }
+
+        private void MediaPlayerOnStopped(object? sender, EventArgs e)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _isMediaPaused = false;
+                UpdateMediaPlayPauseIcon(false);
+                StopMediaLengthProbe();
+                ResetMediaSeekUi();
+            });
+        }
+
+        private void MediaPlayerOnEndReached(object? sender, EventArgs e)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                _isMediaPaused = false;
+                UpdateMediaPlayPauseIcon(false);
+                StopMediaLengthProbe();
+                var duration = ResolveMediaDurationMs(Math.Max(0, _mediaPlayer?.Time ?? 0));
+                if (duration > 0)
+                {
+                    if (MediaSeekSlider is not null)
+                    {
+                        _isUpdatingMediaSeekFromPlayer = true;
+                        MediaSeekSlider.Maximum = duration;
+                        MediaSeekSlider.Value = duration;
+                        _isUpdatingMediaSeekFromPlayer = false;
+                    }
+
+                    UpdateMediaTimeText(duration, duration);
+                }
+            });
+        }
+
+        private void MediaPlayerOnTimeChanged(object? sender, MediaPlayerTimeChangedEventArgs e)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_isMediaSeekDragging || MediaSeekSlider is null)
+                    return;
+
+                var total = ResolveMediaDurationMs(e.Time);
+                if (total <= 0)
+                    total = Math.Max(0, e.Time);
+
+                _isUpdatingMediaSeekFromPlayer = true;
+                if (total > 0 && MediaSeekSlider.Maximum < total)
+                    MediaSeekSlider.Maximum = total;
+
+                MediaSeekSlider.Value = Math.Clamp(e.Time, 0, Math.Max(1, total));
+                _isUpdatingMediaSeekFromPlayer = false;
+                UpdateMediaTimeText(e.Time, total);
+            });
+        }
+
+        private void MediaPlayerOnLengthChanged(object? sender, MediaPlayerLengthChangedEventArgs e)
+        {
+            if (sender is not MediaPlayer player)
+                return;
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                var current = Math.Max(0, player.Time);
+                var duration = ResolveMediaDurationMs(current, Math.Max(0, e.Length));
+                if (duration > 0)
+                    StopMediaLengthProbe();
+
+                if (MediaSeekSlider is not null)
+                {
+                    _isUpdatingMediaSeekFromPlayer = true;
+                    MediaSeekSlider.Maximum = duration <= 0 ? Math.Max(1, current) : duration;
+                    _isUpdatingMediaSeekFromPlayer = false;
+                }
+
+                UpdateMediaTimeText(current, duration);
+            });
+        }
+
+        private void ResetMediaSeekUi()
+        {
+            if (MediaSeekSlider is not null)
+            {
+                _isUpdatingMediaSeekFromPlayer = true;
+                MediaSeekSlider.Minimum = 0;
+                MediaSeekSlider.Maximum = 1;
+                MediaSeekSlider.Value = 0;
+                _isUpdatingMediaSeekFromPlayer = false;
+            }
+
+            UpdateMediaTimeText(0, _mediaDurationMs);
+        }
+
+        private void UpdateMediaTimeText(long currentMs, long totalMs)
+        {
+            if (MediaTimeText is null)
+                return;
+
+            var safeCurrent = Math.Max(0, currentMs);
+            var safeTotal = Math.Max(safeCurrent, Math.Max(0, totalMs));
+            MediaTimeText.Text = $"{FormatMediaDuration(safeCurrent)} / {FormatMediaDuration(safeTotal)}";
+        }
+
+        private static string FormatMediaDuration(long milliseconds)
+        {
+            var ts = TimeSpan.FromMilliseconds(Math.Max(0, milliseconds));
+            return ts.TotalHours >= 1
+                ? $"{(int)ts.TotalHours:00}:{ts.Minutes:00}:{ts.Seconds:00}"
+                : $"{ts.Minutes:00}:{ts.Seconds:00}";
+        }
+
+        private void UpdateMediaPlayPauseIcon(bool isPlaying)
+        {
+            if (MediaPlayPauseIcon is null)
+                return;
+
+            MediaPlayPauseIcon.Data = ResolveIconGeometry(isPlaying ? "Icon.Pause" : "Icon.Play");
+            UpdateMediaControlVisualState(MediaPlayPauseButton, isAlert: !isPlaying && _isMediaPaused);
+        }
+
+        private void UpdateMediaMuteIcon(bool isMuted)
+        {
+            if (MediaMuteIcon is null)
+                return;
+
+            MediaMuteIcon.Data = ResolveIconGeometry(isMuted ? "Icon.Mute" : "Icon.Speaker");
+            UpdateMediaMuteVisualState(isMuted);
+        }
+
+        private void UpdateMediaMuteVisualState(bool isMuted)
+        {
+            UpdateMediaControlVisualState(MediaMuteButton, isAlert: isMuted);
+        }
+
+        private static void UpdateMediaControlVisualState(Button? button, bool isAlert)
+        {
+            if (button is null)
+                return;
+
+            if (isAlert)
+            {
+                if (!button.Classes.Contains("alert"))
+                    button.Classes.Add("alert");
+            }
+            else
+            {
+                button.Classes.Remove("alert");
+            }
+        }
+
+        private long ResolveMediaDurationMs(long currentMsHint = 0, long explicitCandidate = 0)
+        {
+            var duration = Math.Max(0, explicitCandidate);
+            if (_mediaPlayer is not null)
+            {
+                duration = Math.Max(duration, Math.Max(0, _mediaPlayer.Length));
+                duration = Math.Max(duration, Math.Max(0, _mediaPlayer.Media?.Duration ?? 0));
+
+                if (duration <= 0)
+                {
+                    var current = Math.Max(Math.Max(0, _mediaPlayer.Time), Math.Max(0, currentMsHint));
+                    var position = _mediaPlayer.Position;
+                    if (current > 0 && position > 0.001f && position <= 1f)
+                    {
+                        var estimated = (long)Math.Round(current / position);
+                        if (estimated > current)
+                            duration = estimated;
+                    }
+                }
+            }
+
+            duration = Math.Max(duration, _mediaDurationMs);
+            if (duration > _mediaDurationMs)
+            {
+                _mediaDurationMs = duration;
+                if (MediaSeekSlider is not null)
+                {
+                    _isUpdatingMediaSeekFromPlayer = true;
+                    MediaSeekSlider.Maximum = _mediaDurationMs;
+                    _isUpdatingMediaSeekFromPlayer = false;
+                }
+            }
+
+            return duration;
+        }
+
+        private void StartMediaLengthProbe()
+        {
+            if (_mediaPlayer is null)
+                return;
+
+            _mediaLengthProbeTimer ??= BuildMediaLengthProbeTimer();
+            _mediaLengthProbeTicks = 0;
+            _mediaLengthProbeTimer.Start();
+        }
+
+        private void StopMediaLengthProbe()
+        {
+            _mediaLengthProbeTimer?.Stop();
+            _mediaLengthProbeTicks = 0;
+        }
+
+        private DispatcherTimer BuildMediaLengthProbeTimer()
+        {
+            var timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+
+            timer.Tick += (_, _) =>
+            {
+                _mediaLengthProbeTicks++;
+                if (_mediaPlayer is null)
+                {
+                    StopMediaLengthProbe();
+                    return;
+                }
+
+                var current = Math.Max(0, _mediaPlayer.Time);
+                var candidateDuration = ResolveMediaDurationMs(current);
+                if (candidateDuration > 0)
+                {
+                    UpdateMediaTimeText(current, candidateDuration);
+                    StopMediaLengthProbe();
+                    return;
+                }
+
+                UpdateMediaTimeText(current, candidateDuration);
+
+                if (_mediaLengthProbeTicks >= 160)
+                    StopMediaLengthProbe();
+            };
+
+            return timer;
+        }
+
+        private Geometry? ResolveIconGeometry(string key)
+        {
+            return this.TryFindResource(key, ActualThemeVariant, out var resource)
+                ? resource as Geometry
+                : null;
         }
 
         private static int NormalizeAngle(int angle)

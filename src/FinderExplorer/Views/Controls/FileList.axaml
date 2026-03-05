@@ -13,128 +13,133 @@
         <conv:UriToBitmapConverter x:Key="UriToBitmap" />
     </UserControl.Resources>
 
-    <!--
-        Layout principal em 4 colunas sem separadores extras:
-        Col 0: Ícone (28px fixo)
-        Col 1: Name (*)
-        Col 2: Date Modified (GridLength binding)
-        Col 3: Type (GridLength binding)
-        Col 4: Size (GridLength binding)
+    <Grid RowDefinitions="36,*,28"
+          Margin="8,0,0,0">
+        <Border Grid.Row="0"
+                Classes="details-header-strip"
+                Margin="0,0,12,0">
+            <Grid x:Name="HeaderColumnsGrid">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28" MinWidth="28" MaxWidth="28" />
+                    <ColumnDefinition Width="{CompiledBinding NameColumnWidth, Mode=TwoWay}" MinWidth="160" />
+                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                    <ColumnDefinition Width="{CompiledBinding DateModifiedColumnWidth, Mode=TwoWay}" MinWidth="90" />
+                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                    <ColumnDefinition Width="{CompiledBinding TypeColumnWidth, Mode=TwoWay}" MinWidth="56" />
+                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                    <ColumnDefinition Width="{CompiledBinding SizeColumnWidth, Mode=TwoWay}" MinWidth="48" />
+                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-        Os GridSplitters ficam sobrepostos na borda direita de cada coluna
-        redimensionável (HorizontalAlignment=Right, Width=6), em vez de ocupar
-        colunas separadas. Isso garante alinhamento perfeito entre header e rows.
-    -->
-    <!--
-        ESTRUTURA FINAL: Grid externo com 5 colunas compartilhadas entre
-        header e lista. O header (row 0) e o ListBox (row 1) vivem no MESMO
-        Grid de colunas — sem grids aninhados com colunas separadas.
-        Isso garante alinhamento pixel-perfect entre header e rows.
+                <Border Grid.Column="0" />
 
-        Col 0: Ícone (28px)
-        Col 1: Name (*) — splitter na borda direita
-        Col 2: Date Modified (binding) — splitter na borda direita  
-        Col 3: Type (binding) — splitter na borda direita
-        Col 4: Size (binding)
+                <Button Grid.Column="1"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortByName}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Name"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left">
+                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0"
+                                   Text="Name"
+                                   Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortByName}" />
+                    </Grid>
+                </Button>
 
-        Scrollbar: apenas col 0-3 scrollam; a scrollbar fica em col extra
-        (mas como é overlay não precisa de coluna extra).
-    -->
-    <Grid RowDefinitions="36,*,28">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="28" />
-            <ColumnDefinition Width="*" MinWidth="200" />
-            <ColumnDefinition Width="{Binding DateModifiedColumnWidth, Mode=TwoWay}" MinWidth="140" MaxWidth="320" />
-            <ColumnDefinition Width="{Binding TypeColumnWidth, Mode=TwoWay}" MinWidth="80" MaxWidth="220" />
-            <ColumnDefinition Width="{Binding SizeColumnWidth, Mode=TwoWay}" MinWidth="70" MaxWidth="180" />
-        </Grid.ColumnDefinitions>
+                <Button Grid.Column="3"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortByModified}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Modified"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left">
+                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0"
+                                   Text="Date modified"
+                                   Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortByModified}" />
+                    </Grid>
+                </Button>
 
-        <!-- ===== HEADER ROW ===== -->
-        <!-- Col 0: espaço do ícone -->
-        <Border Grid.Row="0" Grid.Column="0" Classes="details-header-strip" Margin="8,0,0,0" />
+                <Button Grid.Column="5"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortByType}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Type"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left">
+                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0"
+                                   Text="Type"
+                                   Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortByType}" />
+                    </Grid>
+                </Button>
 
-        <!-- Col 1: Name + splitter -->
-        <Grid Grid.Row="0" Grid.Column="1" Classes="details-header-strip" Margin="0">
-            <Button Classes="details-header-btn"
-                    Classes.active="{CompiledBinding IsSortByName}"
-                    Command="{CompiledBinding SortByColumnCommand}"
-                    CommandParameter="Name"
-                    HorizontalAlignment="Stretch" Margin="0">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
-                    <TextBlock Grid.Column="0" Text="Name" Classes="details-header-label" />
-                    <PathIcon Grid.Column="1" Classes="details-header-sort"
-                              Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
-                              IsVisible="{CompiledBinding IsSortByName}" />
-                </Grid>
-            </Button>
-            <GridSplitter Classes="details-column-splitter" ResizeDirection="Columns"
-                          Width="6" HorizontalAlignment="Right" />
-        </Grid>
+                <Button Grid.Column="7"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortBySize}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Size"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left">
+                    <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0"
+                                   Text="Size"
+                                   Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortBySize}" />
+                    </Grid>
+                </Button>
 
-        <!-- Col 2: Date Modified + splitter -->
-        <Grid Grid.Row="0" Grid.Column="2" Classes="details-header-strip" Margin="0">
-            <Button Classes="details-header-btn"
-                    Classes.active="{CompiledBinding IsSortByModified}"
-                    Command="{CompiledBinding SortByColumnCommand}"
-                    CommandParameter="Modified"
-                    HorizontalAlignment="Stretch" Margin="0">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
-                    <TextBlock Grid.Column="0" Text="Date modified" Classes="details-header-label" />
-                    <PathIcon Grid.Column="1" Classes="details-header-sort"
-                              Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
-                              IsVisible="{CompiledBinding IsSortByModified}" />
-                </Grid>
-            </Button>
-            <GridSplitter Classes="details-column-splitter" ResizeDirection="Columns"
-                          Width="6" HorizontalAlignment="Right" />
-        </Grid>
-
-        <!-- Col 3: Type + splitter -->
-        <Grid Grid.Row="0" Grid.Column="3" Classes="details-header-strip" Margin="0">
-            <Button Classes="details-header-btn"
-                    Classes.active="{CompiledBinding IsSortByType}"
-                    Command="{CompiledBinding SortByColumnCommand}"
-                    CommandParameter="Type"
-                    HorizontalAlignment="Stretch" Margin="0">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
-                    <TextBlock Grid.Column="0" Text="Type" Classes="details-header-label" />
-                    <PathIcon Grid.Column="1" Classes="details-header-sort"
-                              Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
-                              IsVisible="{CompiledBinding IsSortByType}" />
-                </Grid>
-            </Button>
-            <GridSplitter Classes="details-column-splitter" ResizeDirection="Columns"
-                          Width="6" HorizontalAlignment="Right" />
-        </Grid>
-
-        <!-- Col 4: Size -->
-        <Border Grid.Row="0" Grid.Column="4" Classes="details-header-strip" Margin="0">
-            <Button Classes="details-header-btn"
-                    Classes.active="{CompiledBinding IsSortBySize}"
-                    Command="{CompiledBinding SortByColumnCommand}"
-                    CommandParameter="Size"
-                    HorizontalAlignment="Stretch" Margin="0">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
-                    <TextBlock Grid.Column="0" Text="Size" Classes="details-header-label" />
-                    <PathIcon Grid.Column="1" Classes="details-header-sort"
-                              Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
-                              IsVisible="{CompiledBinding IsSortBySize}" />
-                </Grid>
-            </Button>
+                <GridSplitter Grid.Column="2"
+                              Classes="details-column-splitter"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              Width="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+                <GridSplitter Grid.Column="4"
+                              Classes="details-column-splitter"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              Width="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+                <GridSplitter Grid.Column="6"
+                              Classes="details-column-splitter"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              Width="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+                <GridSplitter Grid.Column="8"
+                              Classes="details-column-splitter"
+                              ResizeDirection="Columns"
+                              ResizeBehavior="PreviousAndNext"
+                              Width="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+            </Grid>
         </Border>
 
-        <!-- ===== LIST ROW (ColumnSpan=5, scroll interno) ===== -->
-        <Grid Grid.Row="1" Grid.ColumnSpan="5"
-              Margin="8,0,0,0"
+        <Grid Grid.Row="1"
               ClipToBounds="True"
               HorizontalAlignment="Stretch">
-            <!--
-                VirtualizingStackPanel com ItemWidth=NaN força cada item a
-                ocupar a largura total do viewport do ScrollViewer.
-                Combinado com HorizontalScrollBarVisibility=Disabled no
-                ScrollViewer, o ListBox nunca mede largura intrínseca dos
-                itens — usa sempre a largura disponível do container pai.
-            -->
             <ListBox x:Name="ItemsList"
                      Classes="file-list-listbox"
                      ItemsSource="{CompiledBinding Items}"
@@ -149,16 +154,18 @@
                 <ListBox.Template>
                     <ControlTemplate>
                         <ScrollViewer x:Name="PART_ScrollViewer"
+                                      Classes="file-scroll custom-vertical-scrollbar"
                                       HorizontalAlignment="Stretch"
                                       VerticalAlignment="Stretch"
                                       HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto"
-                                      AllowAutoHide="True">
+                                      VerticalScrollBarVisibility="Visible"
+                                      AllowAutoHide="False">
                             <ItemsPresenter x:Name="PART_ItemsPresenter"
                                             HorizontalAlignment="Stretch" />
                         </ScrollViewer>
                     </ControlTemplate>
                 </ListBox.Template>
+
                 <ListBox.ItemContainerTheme>
                     <ControlTheme TargetType="ListBoxItem">
                         <Setter Property="Padding" Value="0" />
@@ -177,28 +184,34 @@
                                                   Padding="0" />
                             </ControlTemplate>
                         </Setter>
-                        <!-- Seleção via Border.file-row (estilo no LiquidGlass.axaml) -->
                     </ControlTheme>
                 </ListBox.ItemContainerTheme>
+
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:FileItemViewModel">
                         <Border Classes="file-row"
+                                Padding="0"
                                 HorizontalAlignment="Stretch"
+                                Width="{Binding #HeaderColumnsGrid.Bounds.Width}"
                                 DoubleTapped="FileItem_DoubleTapped"
                                 PointerPressed="FileItem_PointerPressed">
-                            <!-- 5 colunas espelhando exatamente o header (sem colunas de splitter separadas) -->
                             <Grid HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28" />
-                                    <ColumnDefinition Width="*" MinWidth="200" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.DateModifiedColumnWidth}" MinWidth="140" MaxWidth="320" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.TypeColumnWidth}" MinWidth="80" MaxWidth="220" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.SizeColumnWidth}" MinWidth="70" MaxWidth="180" />
+                                    <ColumnDefinition Width="28" MinWidth="28" MaxWidth="28" />
+                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.NameColumnWidth}" MinWidth="160" />
+                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.DateModifiedColumnWidth}" MinWidth="90" />
+                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.TypeColumnWidth}" MinWidth="56" />
+                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.SizeColumnWidth}" MinWidth="48" />
+                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                    <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <Border Grid.ColumnSpan="5" Classes="file-row-pill" />
+                                <Border Grid.ColumnSpan="10"
+                                        Classes="file-row-pill" />
 
-                                <!-- Ícone (padding lateral 4px para alinhar com o header) -->
                                 <Grid Grid.Column="0"
                                       Width="{Binding #FileListRoot.DataContext.FileListIconSize}"
                                       Height="{Binding #FileListRoot.DataContext.FileListIconSize}"
@@ -220,34 +233,31 @@
                                               IsVisible="{CompiledBinding !HasImageIcon}" />
                                 </Grid>
 
-                                <!-- Nome: padding lateral 6px esquerda para alinhar com o header btn -->
                                 <TextBlock Grid.Column="1"
                                            Text="{CompiledBinding DisplayName}"
                                            Classes="file-cell-primary"
                                            TextTrimming="CharacterEllipsis"
                                            VerticalAlignment="Center"
-                                           Margin="6,0,8,0" />
-
-                                <!-- Date modified -->
-                                <TextBlock Grid.Column="2"
+                                           HorizontalAlignment="Left"
+                                           Margin="8,0,0,0" />
+                                <TextBlock Grid.Column="3"
                                            Text="{CompiledBinding Modified, StringFormat='{}{0:dd MMMM yyyy}'}"
                                            Classes="file-cell-secondary"
                                            VerticalAlignment="Center"
-                                           Margin="6,0,8,0" />
-
-                                <!-- Type -->
-                                <TextBlock Grid.Column="3"
+                                           HorizontalAlignment="Left"
+                                           Margin="8,0,0,0" />
+                                <TextBlock Grid.Column="5"
                                            Text="{CompiledBinding Icon}"
                                            Classes="file-cell-secondary"
                                            VerticalAlignment="Center"
-                                           Margin="6,0,8,0" />
-
-                                <!-- Size -->
-                                <TextBlock Grid.Column="4"
+                                           HorizontalAlignment="Left"
+                                           Margin="8,0,0,0" />
+                                <TextBlock Grid.Column="7"
                                            Text="{CompiledBinding SizeDisplay}"
                                            Classes="file-cell-secondary"
                                            VerticalAlignment="Center"
-                                           Margin="6,0,0,0" />
+                                           HorizontalAlignment="Left"
+                                           Margin="8,0,0,0" />
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -261,7 +271,9 @@
             </Canvas>
         </Grid>
 
-        <Border Grid.Row="2" Grid.ColumnSpan="5" Background="Transparent" Padding="12,0">
+        <Border Grid.Row="2"
+                Background="Transparent"
+                Padding="4,0,0,0">
             <TextBlock Text="{CompiledBinding ItemCountText}"
                        FontSize="11"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"

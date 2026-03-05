@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using System.Collections.Concurrent;
 
 namespace FinderExplorer.Core.Services;
 
@@ -25,6 +26,7 @@ public sealed class NextcloudService : INextcloudService, IDisposable
     private readonly ISettingsService _settings;
     private readonly HttpClient _http;
     private readonly string _fileCacheDir;
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _fileDownloadLocks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, CachedDirectoryListing> _directoryCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _directoryCacheLock = new(1, 1);
     private static readonly TimeSpan DirectoryCacheTtl = TimeSpan.FromSeconds(4);
@@ -428,7 +430,10 @@ public sealed class NextcloudService : INextcloudService, IDisposable
         return null;
     }
 
-    public async Task<string?> DownloadFileToCacheAsync(string remotePath, CancellationToken ct = default)
+    public Task<string?> DownloadFileToCacheAsync(string remotePath, CancellationToken ct = default)
+        => DownloadFileToCacheAsync(remotePath, extensionHint: null, ct);
+
+    public async Task<string?> DownloadFileToCacheAsync(string remotePath, string? extensionHint, CancellationToken ct = default)
     {
         EnsureConfigured();
 
@@ -436,33 +441,85 @@ public sealed class NextcloudService : INextcloudService, IDisposable
         if (string.IsNullOrWhiteSpace(normalizedRemotePath) || normalizedRemotePath == "/")
             return null;
 
-        var extension = Path.GetExtension(normalizedRemotePath);
         var hashInput = $"{_settings.Current.NextcloudUrl}|{_settings.Current.NextcloudUser}|{normalizedRemotePath}";
         var hash = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(hashInput))).ToLowerInvariant();
-        var cachePath = Path.Combine(_fileCacheDir, string.IsNullOrWhiteSpace(extension) ? hash : hash + extension);
-
+        var fileLock = _fileDownloadLocks.GetOrAdd(hash, static _ => new SemaphoreSlim(1, 1));
+        var extension = ResolveCacheExtension(normalizedRemotePath, contentType: null, extensionHint);
+        var cachePath = BuildCachedFilePath(hash, extension);
+        await fileLock.WaitAsync(ct);
         try
         {
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                var inferredExisting = FindExistingCachedFilePath(hash);
+                if (!string.IsNullOrWhiteSpace(inferredExisting))
+                    cachePath = inferredExisting;
+            }
+
             if (File.Exists(cachePath))
             {
                 var age = DateTimeOffset.UtcNow - File.GetLastWriteTimeUtc(cachePath);
                 if (age <= FileCacheTtl)
                     return cachePath;
             }
+            else if (!string.IsNullOrWhiteSpace(extension))
+            {
+                var inferredExisting = FindExistingCachedFilePath(hash);
+                if (!string.IsNullOrWhiteSpace(inferredExisting) && File.Exists(inferredExisting))
+                {
+                    var age = DateTimeOffset.UtcNow - File.GetLastWriteTimeUtc(inferredExisting);
+                    File.Copy(inferredExisting, cachePath, overwrite: true);
+
+                    if (age <= FileCacheTtl)
+                    {
+                        File.SetLastWriteTimeUtc(cachePath, DateTime.UtcNow);
+                        return cachePath;
+                    }
+                }
+            }
 
             var req = new HttpRequestMessage(HttpMethod.Get, GetWebDavUrl(normalizedRemotePath));
             using var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
             if (!res.IsSuccessStatusCode)
-                return File.Exists(cachePath) ? cachePath : null;
+            {
+                if (File.Exists(cachePath))
+                    return cachePath;
 
-            var tmpPath = cachePath + ".tmp";
-            await using (var fs = File.Create(tmpPath))
-            await using (var stream = await res.Content.ReadAsStreamAsync(ct))
-                await stream.CopyToAsync(fs, ct);
+                var existingPath = FindExistingCachedFilePath(hash);
+                return !string.IsNullOrWhiteSpace(existingPath) && File.Exists(existingPath)
+                    ? existingPath
+                    : null;
+            }
 
-            File.Move(tmpPath, cachePath, overwrite: true);
-            File.SetLastWriteTimeUtc(cachePath, DateTime.UtcNow);
-            return cachePath;
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = ResolveCacheExtension(normalizedRemotePath, res.Content.Headers.ContentType?.MediaType, extensionHint);
+                cachePath = BuildCachedFilePath(hash, extension);
+            }
+
+            var tmpPath = cachePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                await using (var fs = File.Create(tmpPath))
+                await using (var stream = await res.Content.ReadAsStreamAsync(ct))
+                    await stream.CopyToAsync(fs, ct);
+
+                File.Move(tmpPath, cachePath, overwrite: true);
+                File.SetLastWriteTimeUtc(cachePath, DateTime.UtcNow);
+                return cachePath;
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tmpPath))
+                        File.Delete(tmpPath);
+                }
+                catch
+                {
+                    // Ignore temp cleanup failures.
+                }
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -470,8 +527,96 @@ public sealed class NextcloudService : INextcloudService, IDisposable
         }
         catch
         {
-            return File.Exists(cachePath) ? cachePath : null;
+            if (File.Exists(cachePath))
+                return cachePath;
+
+            var existingPath = FindExistingCachedFilePath(hash);
+            return !string.IsNullOrWhiteSpace(existingPath) && File.Exists(existingPath)
+                ? existingPath
+                : null;
         }
+        finally
+        {
+            fileLock.Release();
+        }
+    }
+
+    private string BuildCachedFilePath(string hash, string? extension)
+    {
+        return Path.Combine(_fileCacheDir, string.IsNullOrWhiteSpace(extension) ? hash : hash + extension);
+    }
+
+    private string? FindExistingCachedFilePath(string hash)
+    {
+        try
+        {
+            var exact = Path.Combine(_fileCacheDir, hash);
+            if (File.Exists(exact))
+                return exact;
+
+            var matches = Directory.GetFiles(_fileCacheDir, $"{hash}.*");
+            if (matches.Length == 0)
+                return null;
+
+            return matches
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string ResolveCacheExtension(string normalizedRemotePath, string? contentType, string? extensionHint)
+    {
+        var decodedPath = Uri.UnescapeDataString(normalizedRemotePath ?? string.Empty);
+        var queryStart = decodedPath.IndexOfAny(['?', '#']);
+        if (queryStart >= 0)
+            decodedPath = decodedPath[..queryStart];
+
+        var extension = Path.GetExtension(decodedPath);
+        if (!string.IsNullOrWhiteSpace(extension))
+            return extension.ToLowerInvariant();
+
+        if (!string.IsNullOrWhiteSpace(extensionHint))
+            return NormalizeExtension(extensionHint);
+
+        if (string.IsNullOrWhiteSpace(contentType))
+            return string.Empty;
+
+        return contentType.Trim().ToLowerInvariant() switch
+        {
+            "video/mp4" => ".mp4",
+            "video/x-matroska" => ".mkv",
+            "video/quicktime" => ".mov",
+            "video/x-msvideo" => ".avi",
+            "video/webm" => ".webm",
+            "audio/mpeg" => ".mp3",
+            "audio/wav" => ".wav",
+            "audio/flac" => ".flac",
+            "audio/ogg" => ".ogg",
+            "audio/aac" => ".aac",
+            "text/plain" => ".txt",
+            "text/markdown" => ".md",
+            "application/json" => ".json",
+            "application/xml" => ".xml",
+            "application/pdf" => ".pdf",
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            "image/gif" => ".gif",
+            _ => string.Empty
+        };
+    }
+
+    private static string NormalizeExtension(string extension)
+    {
+        var normalized = extension.Trim();
+        if (!normalized.StartsWith(".", StringComparison.Ordinal))
+            normalized = "." + normalized;
+
+        return normalized.ToLowerInvariant();
     }
 
     public void Dispose()

@@ -5,5 +5,10 @@
     <RootNamespace>FinderExplorer.Core</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="artifacts/**/*.cs" />
+    <EmbeddedResource Remove="artifacts/**" />
+    <None Remove="artifacts/**" />
+  </ItemGroup>
   <!-- System.Text.Json is built-in to .NET 10, no explicit reference needed -->
 </Project>

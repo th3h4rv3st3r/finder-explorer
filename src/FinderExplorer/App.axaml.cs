@@ -80,6 +80,8 @@ public partial class App : Application
                         var accent = colors.AccentColor1;
                         var accentBrush = new Avalonia.Media.SolidColorBrush(accent);
 
+                        // Keep both color and brush resources in sync for all templates.
+                        Resources["SystemAccentColorLight2"] = accent;
                         // Override accent brush resources directly
                         Resources["AccentFillColorDefaultBrush"] = accentBrush;
                         Resources["App.Theme.FillColorAttentionBrush"] = accentBrush;

@@ -324,6 +324,9 @@ public partial class MainWindowViewModel : ObservableObject
     private string? _mediaPreviewFilePath;
 
     [ObservableProperty]
+    private string? _textPreviewContent;
+
+    [ObservableProperty]
     private double _imagePreviewZoom = 1.0;
 
     [ObservableProperty]
@@ -367,6 +370,24 @@ public partial class MainWindowViewModel : ObservableObject
     {
         ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm", ".m4v", ".mpeg", ".mpg", ".3gp",
         ".mp3", ".flac", ".wav", ".ogg", ".aac", ".m4a", ".wma", ".aiff", ".mid", ".midi"
+    };
+
+    private static readonly HashSet<string> TextPreviewExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".txt", ".md", ".markdown", ".json", ".xml", ".yml", ".yaml", ".ini", ".cfg", ".conf", ".toml",
+        ".log", ".csv", ".tsv", ".sql", ".ps1", ".bat", ".cmd", ".sh", ".xaml", ".csproj", ".sln",
+        ".cs", ".cpp", ".cxx", ".c", ".h", ".hpp", ".java", ".py", ".js", ".ts", ".tsx", ".jsx", ".html", ".css"
+    };
+
+    private static readonly HashSet<string> DedicatedNativePreviewExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf"
+    };
+
+    private static readonly HashSet<string> RawPreviewExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".dng", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".srf", ".sr2",
+        ".orf", ".rw2", ".raf", ".pef", ".srw", ".x3f", ".raw"
     };
 
     private enum ClipboardOperation
@@ -495,8 +516,9 @@ public partial class MainWindowViewModel : ObservableObject
     public bool HasPreviewFallbackImage => !string.IsNullOrWhiteSpace(PreviewFallbackImagePath);
     public bool IsImagePreviewAvailable => !string.IsNullOrWhiteSpace(ImagePreviewFilePath);
     public bool IsMediaPreviewAvailable => !string.IsNullOrWhiteSpace(MediaPreviewFilePath);
+    public bool IsTextPreviewAvailable => !string.IsNullOrWhiteSpace(TextPreviewContent);
     public string ImagePreviewZoomText => $"{(int)Math.Round(ImagePreviewZoom * 100)}%";
-    public bool ShowPreviewStatusText => !IsPreviewAvailable && !HasPreviewFallbackImage && !IsImagePreviewAvailable && !IsMediaPreviewAvailable;
+    public bool ShowPreviewStatusText => !IsPreviewAvailable && !HasPreviewFallbackImage && !IsImagePreviewAvailable && !IsMediaPreviewAvailable && !IsTextPreviewAvailable;
     public bool IsNativePreviewEnabled => SettingsUseGpuAcceleration;
 
     partial void OnDetailsIconImagePathChanged(string? value) => OnPropertyChanged(nameof(DetailsHasImageIcon));
@@ -518,6 +540,12 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnMediaPreviewFilePathChanged(string? value)
     {
         OnPropertyChanged(nameof(IsMediaPreviewAvailable));
+        OnPropertyChanged(nameof(ShowPreviewStatusText));
+    }
+
+    partial void OnTextPreviewContentChanged(string? value)
+    {
+        OnPropertyChanged(nameof(IsTextPreviewAvailable));
         OnPropertyChanged(nameof(ShowPreviewStatusText));
     }
 
@@ -1094,7 +1122,7 @@ public partial class MainWindowViewModel : ObservableObject
         {
             try
             {
-                var localPath = await _nextcloud.DownloadFileToCacheAsync(item.NextcloudRemotePath);
+                var localPath = await _nextcloud.DownloadFileToCacheAsync(item.NextcloudRemotePath, item.Extension);
                 if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
                     _fileSystem.OpenFile(localPath);
             }
@@ -2402,6 +2430,7 @@ public partial class MainWindowViewModel : ObservableObject
         PreviewFallbackImagePath = null;
         ImagePreviewFilePath = null;
         MediaPreviewFilePath = null;
+        TextPreviewContent = null;
         ImagePreviewZoom = 1.0;
         ImagePreviewRotation = 0;
 
@@ -2436,20 +2465,11 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        if (TryEnableImagePreview(SelectedItem.FullPath))
+        if (TryEnableImagePreview(SelectedItem.FullPath, SelectedItem.Extension))
             return;
 
-        if (TryEnableMediaPreview(SelectedItem.FullPath))
+        if (TryEnableMediaPreview(SelectedItem.FullPath, SelectedItem.Extension))
             return;
-
-        if (IsNativePreviewEnabled && CanUseNativePreview(SelectedItem.FullPath))
-        {
-            PreviewFilePath = SelectedItem.FullPath;
-            IsPreviewAvailable = true;
-            MediaPreviewFilePath = null;
-            PreviewStatusText = string.Empty;
-            return;
-        }
 
         PreviewStatusText = "Loading preview...";
     }
@@ -2466,13 +2486,14 @@ public partial class MainWindowViewModel : ObservableObject
         try
         {
             string? localPath;
+            string? textPreviewContent = null;
             if (item.IsNextcloudItem)
             {
                 var remotePath = item.NextcloudRemotePath;
                 if (string.IsNullOrWhiteSpace(remotePath))
                     return;
 
-                localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, ct);
+                localPath = await DownloadNextcloudPreviewFileAsync(remotePath, item.Extension, ct);
             }
             else
             {
@@ -2498,9 +2519,16 @@ public partial class MainWindowViewModel : ObservableObject
             }
 
             string? rasterPreviewPath = null;
-            var canUseNative = IsNativePreviewEnabled && CanUseNativePreview(localPath);
+            var canUseNative = ShouldTryNativePreview(localPath, item.Extension) && CanUseNativePreview(localPath);
             if (!canUseNative)
-                rasterPreviewPath = await TryGetShellIconPathAsync(localPath, PreviewRasterResolveSizePx, ct, preferThumbnail: true);
+            {
+                var previewSize = IsRawPreviewExtension(item.Extension)
+                    ? Math.Max(PreviewRasterResolveSizePx, 1600)
+                    : PreviewRasterResolveSizePx;
+                rasterPreviewPath = await TryGetShellIconPathAsync(localPath, previewSize, ct, preferThumbnail: true);
+            }
+
+            textPreviewContent = await TryLoadTextPreviewContentAsync(localPath, item.Extension, ct);
 
             if (ct.IsCancellationRequested)
                 return;
@@ -2510,11 +2538,17 @@ public partial class MainWindowViewModel : ObservableObject
                 if (!ReferenceEquals(SelectedItem, item))
                     return;
 
-                if (TryEnableImagePreview(localPath))
+                if (TryEnableImagePreview(localPath, item.Extension))
                     return;
 
-                if (TryEnableMediaPreview(localPath))
+                if (TryEnableMediaPreview(localPath, item.Extension))
                     return;
+
+                if (!string.IsNullOrWhiteSpace(textPreviewContent))
+                {
+                    EnableTextPreview(textPreviewContent);
+                    return;
+                }
 
                 if (canUseNative)
                 {
@@ -2523,6 +2557,7 @@ public partial class MainWindowViewModel : ObservableObject
                     PreviewFallbackImagePath = null;
                     ImagePreviewFilePath = null;
                     MediaPreviewFilePath = null;
+                    TextPreviewContent = null;
                     PreviewStatusText = string.Empty;
                 }
                 else if (!string.IsNullOrWhiteSpace(rasterPreviewPath))
@@ -2558,8 +2593,23 @@ public partial class MainWindowViewModel : ObservableObject
                 IsPreviewAvailable = false;
                 PreviewStatusText = "Preview is not available";
                 MediaPreviewFilePath = null;
+                TextPreviewContent = null;
             });
         }
+    }
+
+    private async Task<string?> DownloadNextcloudPreviewFileAsync(string remotePath, string? extensionHint, CancellationToken ct)
+    {
+        var localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, extensionHint, ct);
+        if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
+            return localPath;
+
+        // Retry once in background to absorb transient WebDAV/cache races.
+        await Task.Delay(180, ct);
+        localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, extensionHint, ct);
+        return !string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath)
+            ? localPath
+            : null;
     }
 
     private async Task<string?> ResolveQuickLookTargetPathAsync(FileItemViewModel item)
@@ -2576,7 +2626,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            return await _nextcloud.DownloadFileToCacheAsync(remotePath);
+            return await _nextcloud.DownloadFileToCacheAsync(remotePath, item.Extension);
         }
         catch
         {
@@ -2641,18 +2691,18 @@ public partial class MainWindowViewModel : ObservableObject
         return _quickLookExecutablePath;
     }
 
-    private bool TryEnableImagePreview(string path)
+    private bool TryEnableImagePreview(string path, string? extensionHint = null)
     {
-        if (!IsImagePreviewExtension(path) || !File.Exists(path))
+        if (!IsImagePreviewExtension(path, extensionHint) || !File.Exists(path))
             return false;
 
         EnableRasterPreview(path, GetInitialImagePreviewRotation(path));
         return true;
     }
 
-    private bool TryEnableMediaPreview(string path)
+    private bool TryEnableMediaPreview(string path, string? extensionHint = null)
     {
-        if (!IsMediaPreviewExtension(path) || !File.Exists(path))
+        if (!IsMediaPreviewExtension(path, extensionHint) || !File.Exists(path))
             return false;
 
         EnableMediaPreview(path);
@@ -2666,6 +2716,7 @@ public partial class MainWindowViewModel : ObservableObject
         PreviewFallbackImagePath = null;
         ImagePreviewFilePath = imagePath;
         MediaPreviewFilePath = null;
+        TextPreviewContent = null;
         ImagePreviewZoom = 1.0;
         ImagePreviewRotation = NormalizeRotationAngle(rotation);
         PreviewStatusText = string.Empty;
@@ -2678,21 +2729,126 @@ public partial class MainWindowViewModel : ObservableObject
         PreviewFallbackImagePath = null;
         ImagePreviewFilePath = null;
         MediaPreviewFilePath = mediaPath;
+        TextPreviewContent = null;
         ImagePreviewZoom = 1.0;
         ImagePreviewRotation = 0;
         PreviewStatusText = string.Empty;
     }
 
-    private static bool IsImagePreviewExtension(string path)
+    private void EnableTextPreview(string content)
     {
-        var extension = Path.GetExtension(path);
+        PreviewFilePath = null;
+        IsPreviewAvailable = false;
+        PreviewFallbackImagePath = null;
+        ImagePreviewFilePath = null;
+        MediaPreviewFilePath = null;
+        TextPreviewContent = content;
+        ImagePreviewZoom = 1.0;
+        ImagePreviewRotation = 0;
+        PreviewStatusText = string.Empty;
+    }
+
+    private static bool IsImagePreviewExtension(string path, string? extensionHint = null)
+    {
+        var extension = NormalizeExtension(Path.GetExtension(path));
+        if (string.IsNullOrWhiteSpace(extension))
+            extension = NormalizeExtension(extensionHint);
+
         return !string.IsNullOrWhiteSpace(extension) && ImagePreviewExtensions.Contains(extension);
     }
 
-    private static bool IsMediaPreviewExtension(string path)
+    private static bool IsMediaPreviewExtension(string path, string? extensionHint = null)
     {
-        var extension = Path.GetExtension(path);
+        var extension = NormalizeExtension(Path.GetExtension(path));
+        if (string.IsNullOrWhiteSpace(extension))
+            extension = NormalizeExtension(extensionHint);
+
         return !string.IsNullOrWhiteSpace(extension) && MediaPreviewExtensions.Contains(extension);
+    }
+
+    private static bool IsTextPreviewExtension(string path, string? extensionHint = null)
+    {
+        var extension = NormalizeExtension(Path.GetExtension(path));
+        if (string.IsNullOrWhiteSpace(extension))
+            extension = NormalizeExtension(extensionHint);
+
+        return !string.IsNullOrWhiteSpace(extension) && TextPreviewExtensions.Contains(extension);
+    }
+
+    private static bool IsRawPreviewExtension(string? extension)
+        => !string.IsNullOrWhiteSpace(extension) && RawPreviewExtensions.Contains(NormalizeExtension(extension));
+
+    private bool ShouldTryNativePreview(string path, string? extensionHint)
+    {
+        if (IsNativePreviewEnabled)
+            return true;
+
+        var extension = NormalizeExtension(Path.GetExtension(path));
+        if (string.IsNullOrWhiteSpace(extension))
+            extension = NormalizeExtension(extensionHint);
+
+        return !string.IsNullOrWhiteSpace(extension) && DedicatedNativePreviewExtensions.Contains(extension);
+    }
+
+    private static string NormalizeExtension(string? extension)
+    {
+        if (string.IsNullOrWhiteSpace(extension))
+            return string.Empty;
+
+        var normalized = extension.Trim();
+        if (!normalized.StartsWith(".", StringComparison.Ordinal))
+            normalized = "." + normalized;
+
+        return normalized.ToLowerInvariant();
+    }
+
+    private static async Task<string?> TryLoadTextPreviewContentAsync(string path, string? extensionHint, CancellationToken ct)
+    {
+        if (!IsTextPreviewExtension(path, extensionHint) || !File.Exists(path))
+            return null;
+
+        const int maxChars = 200_000;
+        try
+        {
+            await using var fs = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                4096,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+            using var reader = new StreamReader(fs, detectEncodingFromByteOrderMarks: true);
+            var buffer = new char[4096];
+            var builder = new StringBuilder(maxChars);
+
+            while (builder.Length < maxChars)
+            {
+                ct.ThrowIfCancellationRequested();
+                var toRead = Math.Min(buffer.Length, maxChars - builder.Length);
+                var read = await reader.ReadAsync(buffer.AsMemory(0, toRead), ct);
+                if (read <= 0)
+                    break;
+
+                builder.Append(buffer, 0, read);
+            }
+
+            if (builder.Length == 0)
+                return "(Empty file)";
+
+            if (!reader.EndOfStream)
+                builder.AppendLine().AppendLine("... (truncated)");
+
+            return builder.ToString();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static int GetInitialImagePreviewRotation(string path)
@@ -2955,7 +3111,7 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     try
                     {
-                        localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, ct);
+                        localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, item.Extension, ct);
                     }
                     catch (OperationCanceledException) when (ct.IsCancellationRequested)
                     {

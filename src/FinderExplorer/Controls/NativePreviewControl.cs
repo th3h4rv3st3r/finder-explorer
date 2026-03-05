@@ -18,10 +18,19 @@ public sealed class NativePreviewControl : NativeControlHost
     public static readonly StyledProperty<string?> FilePathProperty =
         AvaloniaProperty.Register<NativePreviewControl, string?>(nameof(FilePath));
 
+    public static readonly StyledProperty<bool> IsPreviewEnabledProperty =
+        AvaloniaProperty.Register<NativePreviewControl, bool>(nameof(IsPreviewEnabled), true);
+
     public string? FilePath
     {
         get => GetValue(FilePathProperty);
         set => SetValue(FilePathProperty, value);
+    }
+
+    public bool IsPreviewEnabled
+    {
+        get => GetValue(IsPreviewEnabledProperty);
+        set => SetValue(IsPreviewEnabledProperty, value);
     }
 
     private IntPtr _previewContext = IntPtr.Zero;
@@ -32,7 +41,7 @@ public sealed class NativePreviewControl : NativeControlHost
     {
         base.OnPropertyChanged(change);
         
-        if (change.Property == FilePathProperty)
+        if (change.Property == FilePathProperty || change.Property == IsPreviewEnabledProperty)
         {
             LoadPreview();
         }
@@ -56,7 +65,7 @@ public sealed class NativePreviewControl : NativeControlHost
     {
         UnloadPreview();
 
-        if (_isNativeBridgeUnavailable || string.IsNullOrEmpty(FilePath) || _hwndHandle == null || !File.Exists(FilePath))
+        if (_isNativeBridgeUnavailable || !IsPreviewEnabled || string.IsNullOrEmpty(FilePath) || _hwndHandle == null || !File.Exists(FilePath))
             return;
 
         try

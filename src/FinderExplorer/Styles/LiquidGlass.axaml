@@ -236,6 +236,33 @@
     <Style Selector="Button.toolbar-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
     </Style>
+    <Style Selector="Button.media-control-btn">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.media-control-btn PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.media-control-btn.alert">
+        <Setter Property="Foreground" Value="#FF4D4F" />
+    </Style>
+    <Style Selector="Button.media-control-btn.alert PathIcon">
+        <Setter Property="Foreground" Value="#FF4D4F" />
+    </Style>
+    <Style Selector="Button.media-control-btn.alert /template/ Border#Bd">
+        <Setter Property="BorderBrush" Value="#44FF4D4F" />
+    </Style>
+    <Style Selector="Slider.media-slider">
+        <Setter Property="Foreground" Value="{DynamicResource MediaControlAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Slider.media-slider Thumb">
+        <Setter Property="Background" Value="{DynamicResource MediaControlAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MediaControlAccentBrush}" />
+    </Style>
+    <Style Selector="Slider.media-slider Thumb /template/ Border">
+        <Setter Property="Background" Value="{DynamicResource MediaControlAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MediaControlAccentBrush}" />
+    </Style>
     
     <!-- Navigation Button Style (Back, Forward, Up, Refresh)
          Matches Files AddressToolbarButtonStyle 36x32, borderless, precise hover -->
@@ -782,13 +809,13 @@
         </Setter>
     </Style>
 
-    <!-- Thumb: pílula de 3px, arredondada, semi-transparente -->
+    <!-- Thumb: pílula fina com accent dinâmico do sistema -->
     <Style Selector="Thumb.scrollbar-thumb">
-        <Setter Property="Background" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
         <Setter Property="MinHeight" Value="24" />
         <Setter Property="Width" Value="4" />
         <Setter Property="Margin" Value="4,0" />
-        <Setter Property="Opacity" Value="0.6" />
+        <Setter Property="Opacity" Value="0.82" />
         <Setter Property="Template">
             <ControlTemplate>
                 <Border x:Name="ThumbBd"
@@ -805,12 +832,203 @@
         </Setter>
     </Style>
     <Style Selector="Thumb.scrollbar-thumb:pointerover">
-        <Setter Property="Opacity" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Opacity" Value="0.95" />
         <Setter Property="Margin" Value="2,0" />
     </Style>
     <Style Selector="Thumb.scrollbar-thumb:pressed">
+        <Setter Property="Opacity" Value="0.98" />
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
+    <!-- Fallback para templates de ScrollBar que não usem classe "scrollbar-thumb" -->
+    <Style Selector="ScrollBar Thumb">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Opacity" Value="0.82" />
+    </Style>
+    <Style Selector="ScrollBar Thumb:pointerover">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Opacity" Value="0.95" />
+    </Style>
+    <Style Selector="ScrollBar Thumb:pressed">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Opacity" Value="0.98" />
+    </Style>
+
+    <!-- Garante thumb arredondado também no template padrão do SimpleTheme -->
+    <Style Selector="ScrollBar Thumb /template/ Border">
+        <Setter Property="CornerRadius" Value="999" />
+    </Style>
+
+    <!-- Setas do template padrão: accent dinâmica + cantos arredondados -->
+    <Style Selector="ScrollBar RepeatButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton:pointerover">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton:pressed">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ScrollBar:vertical RepeatButton">
+        <Setter Property="Width" Value="9" />
+        <Setter Property="MinWidth" Value="9" />
+        <Setter Property="Height" Value="9" />
+        <Setter Property="MinHeight" Value="9" />
+    </Style>
+    <Style Selector="ScrollBar:horizontal RepeatButton">
+        <Setter Property="Width" Value="9" />
+        <Setter Property="MinWidth" Value="9" />
+        <Setter Property="Height" Value="9" />
+        <Setter Property="MinHeight" Value="9" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton /template/ Border">
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Width" Value="9" />
+        <Setter Property="Height" Value="9" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton /template/ PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton /template/ Path">
+        <Setter Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Stroke" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton:pointerover /template/ PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton:pressed /template/ PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton:pointerover /template/ Path">
+        <Setter Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Stroke" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton:pressed /template/ Path">
+        <Setter Property="Fill" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Stroke" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
+    <!-- Sidebar vertical scrollbar: custom template -->
+    <Style Selector="ScrollViewer.sidebar-scroll ScrollBar:vertical">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
         <Setter Property="Opacity" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid RowDefinitions="12,*,12"
+                      Background="Transparent">
+                    <RepeatButton x:Name="PART_LineUpButton"
+                                  Grid.Row="0"
+                                  Width="10"
+                                  Height="10"
+                                  Padding="0"
+                                  Background="Transparent"
+                                  BorderBrush="Transparent"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  HorizontalContentAlignment="Center"
+                                  VerticalContentAlignment="Center">
+                        <Path Width="6"
+                              Height="4"
+                              Data="M 0,4 L 3,0 L 6,4 Z"
+                              Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                              Stretch="Uniform"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </RepeatButton>
+
+                    <Track x:Name="PART_Track"
+                           Grid.Row="1"
+                           Width="8"
+                           Margin="0,2"
+                           IsDirectionReversed="True"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value}"
+                           ViewportSize="{TemplateBinding ViewportSize}"
+                           Orientation="Vertical">
+                        <Track.DecreaseButton>
+                            <RepeatButton Classes="sidebar-scroll-page-btn" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton Classes="sidebar-scroll-page-btn" />
+                        </Track.IncreaseButton>
+                        <Thumb x:Name="thumb"
+                               Classes="sidebar-scroll-thumb" />
+                    </Track>
+
+                    <RepeatButton x:Name="PART_LineDownButton"
+                                  Grid.Row="2"
+                                  Width="10"
+                                  Height="10"
+                                  Padding="0"
+                                  Background="Transparent"
+                                  BorderBrush="Transparent"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  HorizontalContentAlignment="Center"
+                                  VerticalContentAlignment="Center">
+                        <Path Width="6"
+                              Height="4"
+                              Data="M 0,0 L 3,4 L 6,0 Z"
+                              Fill="{DynamicResource AccentFillColorDefaultBrush}"
+                              Stretch="Uniform"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </RepeatButton>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="RepeatButton.sidebar-scroll-page-btn">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <Style Selector="Thumb.sidebar-scroll-thumb">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Width" Value="5" />
+        <Setter Property="Margin" Value="1,0" />
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="Opacity" Value="0.88" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        CornerRadius="999"
+                        Margin="{TemplateBinding Margin}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Thumb.sidebar-scroll-thumb:pointerover">
+        <Setter Property="Opacity" Value="0.96" />
+    </Style>
+
+    <Style Selector="Thumb.sidebar-scroll-thumb:pressed">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="ScrollBar RepeatButton /template/ TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource AccentFillColorDefaultBrush}" />
     </Style>
 
     <!-- Esconde os botões de linha -->

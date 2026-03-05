@@ -10,9 +10,8 @@
              x:Class="FinderExplorer.Views.Controls.ContentToolbar"
              x:DataType="vm:MainWindowViewModel">
 
-    <Border Background="{DynamicResource App.Theme.Toolbar.BackgroundBrush}"
-            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-            BorderThickness="0,0,0,1"
+    <Border Classes="app-surface-toolbar"
+            Margin="8,4,10,4"
             Padding="8,3">
         <Border Classes="commandbar-shell">
             <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">

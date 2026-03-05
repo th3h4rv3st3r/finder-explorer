@@ -10,7 +10,11 @@
     </UserControl.Resources>
     
     <Grid RowDefinitions="*, Auto" Margin="0,8,0,0">
-        <ScrollViewer Grid.Row="0" Padding="0,0,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="0"
+                      Classes="sidebar-scroll"
+                      Padding="0,0,0,0"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="4,0,4,16" Spacing="0">
                 
                 <!-- Home Button -->

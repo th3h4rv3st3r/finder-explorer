@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using FinderExplorer.Core.Services;
@@ -64,6 +65,10 @@ namespace FinderExplorer.Views.Controls
                 return;
 
             if (e.Handled)
+                return;
+
+            // Never start marquee/context actions when interacting with the scrollbar.
+            if (IsPointerFromScrollBar(e))
                 return;
 
             var point = e.GetCurrentPoint(ItemsList);
@@ -202,6 +207,17 @@ namespace FinderExplorer.Views.Controls
             var width = Math.Abs(a.X - b.X);
             var height = Math.Abs(a.Y - b.Y);
             return new Rect(x, y, width, height);
+        }
+
+        private static bool IsPointerFromScrollBar(PointerEventArgs e)
+        {
+            if (e.Source is not Avalonia.Visual sourceVisual)
+                return false;
+
+            if (sourceVisual is ScrollBar or Track or Thumb)
+                return true;
+
+            return sourceVisual.FindAncestorOfType<ScrollBar>() is not null;
         }
 
         private void ShowNativeContextMenu(IReadOnlyList<string> paths, PointerPressedEventArgs e)

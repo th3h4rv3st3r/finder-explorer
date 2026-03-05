@@ -87,18 +87,20 @@
                     O VM já controla DetailsPaneWidth=0 e DetailsPaneMinWidth=0
                     quando IsDetailsPaneVisible=false.
                 -->
-                <Grid Grid.Row="1" Grid.Column="2">
+                <Grid Grid.Row="1"
+                      Grid.Column="2"
+                      Margin="8,0,10,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="{Binding DetailsPaneWidth, Mode=TwoWay}"
                                           MinWidth="{CompiledBinding DetailsPaneMinWidth}"
-                                          MaxWidth="560" />
+                                          MaxWidth="1800" />
                     </Grid.ColumnDefinitions>
 
                     <!-- FileList: col 0, fill completo -->
                     <Border Grid.Column="0"
-                            Background="{DynamicResource App.Theme.FileArea.BackgroundBrush}">
+                            Classes="app-surface-panel">
                         <controls:FileList />
                     </Border>
 
@@ -109,12 +111,13 @@
                                   Background="Transparent"
                                   Width="6"
                                   ResizeDirection="Columns"
+                                  ResizeBehavior="PreviousAndNext"
                                   HorizontalAlignment="Stretch"
                                   IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
 
                     <!-- Details pane: col 2 -->
                     <Border Grid.Column="2"
-                            Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
+                            Classes="app-surface-panel"
                             IsVisible="{CompiledBinding IsDetailsPaneVisible}">
                         <controls:DetailsPane />
                     </Border>
@@ -494,7 +497,7 @@
                                         <PathIcon Classes="settings-option-icon"
                                                   Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Thumbnails}" />
                                         <TextBlock Grid.Column="1"
-                                                   Text="Use GPU acceleration for thumbnails"
+                                                   Text="Use GPU acceleration for thumbnails and native previews"
                                                    VerticalAlignment="Center" />
                                         <ToggleSwitch Grid.Column="2"
                                                       IsChecked="{CompiledBinding SettingsUseGpuAcceleration}" />

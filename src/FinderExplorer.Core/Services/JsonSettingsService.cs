@@ -35,21 +35,22 @@ public sealed class JsonSettingsService : ISettingsService
 
     public AppSettings Current { get; private set; } = new();
 
-    public async Task LoadAsync(CancellationToken ct = default)
+    public Task LoadAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
         try
         {
             if (!File.Exists(SettingsPath))
             {
                 Current = new AppSettings();
-                return;
+                return Task.CompletedTask;
             }
 
-            await using var stream = File.OpenRead(SettingsPath);
-            Current = await JsonSerializer.DeserializeAsync(
+            using var stream = File.OpenRead(SettingsPath);
+            Current = JsonSerializer.Deserialize(
                           stream,
-                          AppSettingsJsonContext.Default.AppSettings,
-                          ct)
+                          AppSettingsJsonContext.Default.AppSettings)
                       ?? new AppSettings();
         }
         catch
@@ -57,6 +58,8 @@ public sealed class JsonSettingsService : ISettingsService
             // Corrupt or unreadable file — start with defaults
             Current = new AppSettings();
         }
+
+        return Task.CompletedTask;
     }
 
     public async Task SaveAsync(CancellationToken ct = default)
@@ -70,7 +73,7 @@ public sealed class JsonSettingsService : ISettingsService
                 stream,
                 Current,
                 AppSettingsJsonContext.Default.AppSettings,
-                ct);
+                ct).ConfigureAwait(false);
 
         File.Move(tmp, SettingsPath, overwrite: true);
     }

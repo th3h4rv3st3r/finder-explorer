@@ -54,4 +54,12 @@ public interface INextcloudService
     /// Returns null when the remote file could not be retrieved.
     /// </summary>
     Task<string?> DownloadFileToCacheAsync(string remotePath, CancellationToken ct = default);
+
+    /// <summary>
+    /// Downloads a remote file to a local cache path and returns that local file path.
+    /// An optional <paramref name="extensionHint"/> can be provided when the remote path
+    /// does not include a file extension.
+    /// Returns null when the remote file could not be retrieved.
+    /// </summary>
+    Task<string?> DownloadFileToCacheAsync(string remotePath, string? extensionHint, CancellationToken ct = default);
 }
