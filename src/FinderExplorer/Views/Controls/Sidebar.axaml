@@ -160,7 +160,7 @@
                 <Button Classes="sidebar-item" ToolTip.Tip="Settings">
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" />
-                        <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Settings}" Width="16" Height="16"
+                        <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General}" Width="16" Height="16"
                                   Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="2" Text="Settings" VerticalAlignment="Center"
                                    Margin="12,0,12,2"/>

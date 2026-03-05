@@ -11,16 +11,16 @@
         <Grid ColumnDefinitions="Auto,*,Auto" Height="48" ColumnSpacing="4">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                 <Button Classes="nav-btn" Command="{CompiledBinding NavigateBackCommand}" IsEnabled="{CompiledBinding CanNavigateBack}" ToolTip.Tip="Back (Alt+Left)">
-                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavBack}" Width="14" Height="14" />
+                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavBack.12}" Width="12" Height="12" />
                 </Button>
                 <Button Classes="nav-btn" Command="{CompiledBinding NavigateForwardCommand}" IsEnabled="{CompiledBinding CanNavigateForward}" ToolTip.Tip="Forward (Alt+Right)">
-                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavForward}" Width="14" Height="14" />
+                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavForward.12}" Width="12" Height="12" />
                 </Button>
                 <Button Classes="nav-btn" Command="{CompiledBinding NavigateUpCommand}" IsEnabled="{CompiledBinding CanNavigateUp}" ToolTip.Tip="Up (Alt+Up)">
-                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavUp}" Width="14" Height="14" />
+                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.NavUp.12}" Width="12" Height="12" />
                 </Button>
                 <Button Classes="nav-btn" Command="{CompiledBinding RefreshCommand}" ToolTip.Tip="Refresh (F5)">
-                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.Refresh}" Width="14" Height="14" />
+                    <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.Refresh.12}" Width="12" Height="12" />
                 </Button>
             </StackPanel>
 
@@ -33,8 +33,8 @@
                     <Button Grid.Column="0" Classes="nav-btn" Width="36" Height="32"
                             Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarHome}"
                             ToolTip.Tip="Home">
-                        <PathIcon Data="{DynamicResource Icon.Home}" Width="14" Height="14"
-                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Image Source="avares://FinderExplorer/Assets/Icons/WinUI/Home.png" Width="16" Height="16"
+                               RenderOptions.BitmapInterpolationMode="HighQuality" />
                     </Button>
 
                     <ScrollViewer Grid.Column="1"

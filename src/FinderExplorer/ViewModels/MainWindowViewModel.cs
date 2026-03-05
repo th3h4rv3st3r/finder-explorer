@@ -108,6 +108,15 @@ public partial class MainWindowViewModel : ObservableObject
     private string _detailsPathText = string.Empty;
 
     [ObservableProperty]
+    private string? _previewFilePath;
+
+    [ObservableProperty]
+    private bool _isPreviewAvailable;
+
+    [ObservableProperty]
+    private string _previewStatusText = "Select a file to preview";
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NavigateBackCommand))]
     private bool _canNavigateBack;
 
@@ -152,6 +161,7 @@ public partial class MainWindowViewModel : ObservableObject
     partial void OnSelectedItemChanged(FileItemViewModel? value)
     {
         UpdateDetailsState();
+        UpdatePreviewState();
     }
 
     private void InitializeSidebar()
@@ -615,6 +625,46 @@ public partial class MainWindowViewModel : ObservableObject
             DetailsDateModifiedText = "--";
             DetailsDateCreatedText = "--";
         }
+    }
+
+    private void UpdatePreviewState()
+    {
+        if (SelectedItem is null)
+        {
+            PreviewFilePath = null;
+            IsPreviewAvailable = false;
+            PreviewStatusText = "Select a file to preview";
+            return;
+        }
+
+        if (SelectedItem.IsDirectory)
+        {
+            PreviewFilePath = null;
+            IsPreviewAvailable = false;
+            PreviewStatusText = "Preview is not available for folders";
+            return;
+        }
+
+        if (!File.Exists(SelectedItem.FullPath))
+        {
+            PreviewFilePath = null;
+            IsPreviewAvailable = false;
+            PreviewStatusText = "Preview is not available";
+            return;
+        }
+
+        var extension = SelectedItem.Extension.ToLowerInvariant();
+        if (extension is ".exe" or ".dll" or ".sys" or ".bin")
+        {
+            PreviewFilePath = null;
+            IsPreviewAvailable = false;
+            PreviewStatusText = "Preview is not available for this file type";
+            return;
+        }
+
+        PreviewFilePath = SelectedItem.FullPath;
+        IsPreviewAvailable = true;
+        PreviewStatusText = string.Empty;
     }
 
     private void UpdateItemCountText()
