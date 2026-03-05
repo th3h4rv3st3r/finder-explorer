@@ -92,6 +92,24 @@ FINDER_API int FE_GetThumbnail(
         return 0;
     }
 
+        bool hasAlpha = false;
+    for (int i = 0; i < w * h; ++i)
+    {
+        if (pixels[(i * 4) + 3] > 0)
+        {
+            hasAlpha = true;
+            break;
+        }
+    }
+
+    if (!hasAlpha)
+    {
+        for (int i = 0; i < w * h; ++i)
+        {
+            pixels[(i * 4) + 3] = 255;
+        }
+    }
+
     *outPixels = pixels;
     *outWidth  = w;
     *outHeight = h;
@@ -105,3 +123,4 @@ FINDER_API void FE_FreeThumbnail(uint8_t* pixels)
 {
     std::free(pixels);
 }
+

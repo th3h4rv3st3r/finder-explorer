@@ -15,6 +15,13 @@
                 
                 <!-- Home Button -->
                 <Button Classes="sidebar-item" ToolTip.Tip="Home" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarHome}" Classes.selected="{CompiledBinding SidebarHome.IsSelected}">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Open in New Tab"
+                                      Command="{CompiledBinding NewTabFromPathCommand}"
+                                      CommandParameter="{CompiledBinding SidebarHome.Path}" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarHome.IsSelected}" />
                         <Image Grid.Column="1" Source="{CompiledBinding SidebarHome.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
@@ -40,8 +47,17 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                             <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}" ToolTip.Tip="{CompiledBinding Label}"
+                            <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}" ToolTip.Tip="{CompiledBinding Label}"
                                     Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}" CommandParameter="{CompiledBinding}">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Open in New Tab"
+                                                  Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NewTabFromPathCommand}"
+                                                  CommandParameter="{CompiledBinding Path}" />
+                                        <Separator />
+                                        <MenuItem Header="Unpin" Tag="UnpinFavorite" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
                                     <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
                                     <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
@@ -71,8 +87,15 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:SidebarItemViewModel">
-                             <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}" ToolTip.Tip="{CompiledBinding Label}"
+                            <Button Classes="sidebar-item" Classes.selected="{CompiledBinding IsSelected}" ToolTip.Tip="{CompiledBinding Label}"
                                     Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}" CommandParameter="{CompiledBinding}">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Open in New Tab"
+                                                  Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NewTabFromPathCommand}"
+                                                  CommandParameter="{CompiledBinding Path}" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                                     <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
                                     <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
@@ -96,6 +119,18 @@
                     </Grid>
                 </ToggleButton>
                 <Button Classes="sidebar-item" ToolTip.Tip="Network" IsVisible="{CompiledBinding IsNetworkExpanded}" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarNetwork}" Classes.selected="{CompiledBinding SidebarNetwork.IsSelected}">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Open in New Tab"
+                                      Command="{CompiledBinding NewTabFromPathCommand}"
+                                      CommandParameter="{CompiledBinding SidebarNetwork.Path}" />
+                            <Separator />
+                            <MenuItem Header="Add network location"
+                                      Command="{CompiledBinding AddNetworkLocationCommand}" />
+                            <MenuItem Header="Add folder shortcut"
+                                      Command="{CompiledBinding AddNetworkFolderCommand}" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNetwork.IsSelected}" />
                         <Image Grid.Column="1" Source="{CompiledBinding SidebarNetwork.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
@@ -104,6 +139,42 @@
                                    Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
                     </Grid>
                 </Button>
+
+                <ItemsControl IsVisible="{CompiledBinding IsNetworkExpanded}"
+                              ItemsSource="{CompiledBinding SidebarNetworkLocations}"
+                              Margin="0,2,0,12">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Spacing="0" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SidebarItemViewModel">
+                            <Button Classes="sidebar-item"
+                                    Classes.selected="{CompiledBinding IsSelected}"
+                                    ToolTip.Tip="{CompiledBinding Path}"
+                                    Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SidebarNavigateCommand}"
+                                    CommandParameter="{CompiledBinding}">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Open in New Tab"
+                                                  Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NewTabFromPathCommand}"
+                                                  CommandParameter="{CompiledBinding Path}" />
+                                        <Separator />
+                                        <MenuItem Header="Remove from Network"
+                                                  Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RemoveNetworkLocationCommand}"
+                                                  CommandParameter="{CompiledBinding}" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                                <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
+                                    <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
+                                    <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="None" />
+                                    <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
+                                               Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <!-- Nextcloud Section -->
                 <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsNextcloudExpanded}">
@@ -116,6 +187,18 @@
                     </Grid>
                 </ToggleButton>
                 <Button Classes="sidebar-item" ToolTip.Tip="Nextcloud" IsVisible="{CompiledBinding IsNextcloudExpanded}" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarNextcloud}" Classes.selected="{CompiledBinding SidebarNextcloud.IsSelected}">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Open in New Tab"
+                                      Command="{CompiledBinding NewTabFromPathCommand}"
+                                      CommandParameter="{CompiledBinding SidebarNextcloud.Path}" />
+                            <Separator />
+                            <MenuItem Header="Generate public link"
+                                      Command="{CompiledBinding GeneratePublicLinkCommand}" />
+                            <MenuItem Header="Generate internal link"
+                                      Command="{CompiledBinding GenerateInternalLinkCommand}" />
+                        </ContextMenu>
+                    </Button.ContextMenu>
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNextcloud.IsSelected}" />
                         <Image Grid.Column="1" Source="{CompiledBinding SidebarNextcloud.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"

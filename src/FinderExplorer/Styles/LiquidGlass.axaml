@@ -426,8 +426,12 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <ScrollViewer AllowAutoHide="True"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <ItemsPresenter />
+                    <ItemsPresenter HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch" />
                 </ScrollViewer>
             </ControlTemplate>
         </Setter>
@@ -449,11 +453,14 @@
 
     <!-- ══════════════════════════════════════════════════════════════════
          FILE ROW
+         Padding=0 — o alinhamento com o header é garantido pelo Margin
+         idêntico no Grid pai. MinHeight=30 garante altura de toque ok.
     ══════════════════════════════════════════════════════════════════ -->
     <Style Selector="Border.file-row">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
-        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="30" />
         <Setter Property="Margin" Value="0,1" />
         <Setter Property="Transitions">
             <Transitions>
@@ -493,7 +500,9 @@
                             BorderBrush="Transparent"
                             BorderThickness="1"
                             CornerRadius="4">
-                        <ContentPresenter HorizontalAlignment="Center"
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
                                           Foreground="{TemplateBinding Foreground}" />
                     </Border>
@@ -643,6 +652,72 @@
 
     <Style Selector="Border.settings-option-card ToggleSwitch">
         <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.settings-option-card ToggleSwitch /template/ Border#OuterBorder">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="Border.settings-option-card ToggleSwitch:checked /template/ Border#OuterBorder">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Border.settings-option-card ToggleSwitch:pointerover /template/ Border#OuterBorder">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.settings-option-card ToggleSwitch:checked:pointerover /template/ Border#OuterBorder">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Border.settings-option-card ToggleSwitch /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+
+    <Style Selector="Border.settings-option-card ToggleSwitch TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.settings-action-search">
+        <Setter Property="MinWidth" Value="220" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
+    <Style Selector="Button.settings-action-btn">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+    </Style>
+    <Style Selector="Button.settings-action-btn:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.settings-action-btn:pressed">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.settings-shortcut-chip">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="MinWidth" Value="26" />
+    </Style>
+
+    <Style Selector="TextBlock.settings-shortcut-chip-text">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style Selector="Border.settings-section-card ComboBox">
@@ -662,9 +737,95 @@
         <Setter Property="AllowAutoHide" Value="True" />
     </Style>
 
-    <!-- ScrollBar thin & subtle -->
+    <!-- ══════════════════════════════════════════════════════════════════
+         SCROLLBAR — thin, subtle, WinUI-style
+         Track transparente, thumb 3px (expande para 6px no hover),
+         sem botões de seta, fade-in/out suave.
+    ══════════════════════════════════════════════════════════════════ -->
     <Style Selector="ScrollBar">
-        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="MinWidth" Value="12" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2" Easing="CubicEaseOut" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid x:Name="Root" Background="Transparent">
+                    <Border x:Name="TrackBd"
+                            Background="Transparent"
+                            CornerRadius="6"
+                            Margin="0,2"
+                            HorizontalAlignment="Center"
+                            Width="6" />
+                    <Track x:Name="PART_Track"
+                           IsDirectionReversed="True"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value}"
+                           ViewportSize="{TemplateBinding ViewportSize}"
+                           Orientation="{TemplateBinding Orientation}">
+                        <Track.DecreaseButton>
+                            <RepeatButton Classes="scrollbar-line-btn" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton Classes="scrollbar-line-btn" />
+                        </Track.IncreaseButton>
+                        <Thumb x:Name="thumb"
+                               Classes="scrollbar-thumb" />
+                    </Track>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Thumb: pílula de 3px, arredondada, semi-transparente -->
+    <Style Selector="Thumb.scrollbar-thumb">
+        <Setter Property="Background" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Width" Value="4" />
+        <Setter Property="Margin" Value="4,0" />
+        <Setter Property="Opacity" Value="0.6" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="ThumbBd"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="3"
+                        Margin="{TemplateBinding Margin}">
+                    <Border.Transitions>
+                        <Transitions>
+                            <ThicknessTransition Property="Margin" Duration="0:0:0.15" />
+                        </Transitions>
+                    </Border.Transitions>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Thumb.scrollbar-thumb:pointerover">
+        <Setter Property="Opacity" Value="1" />
+        <Setter Property="Margin" Value="2,0" />
+    </Style>
+    <Style Selector="Thumb.scrollbar-thumb:pressed">
+        <Setter Property="Opacity" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <!-- Esconde os botões de linha -->
+    <Style Selector="RepeatButton.scrollbar-line-btn">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Width" Value="0" />
+        <Setter Property="Height" Value="0" />
+    </Style>
+
+    <!-- ScrollViewer mostra a scrollbar no hover -->
+    <Style Selector="ScrollViewer:pointerover ScrollBar">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="ScrollViewer ScrollBar:pointerover">
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
 </Styles>

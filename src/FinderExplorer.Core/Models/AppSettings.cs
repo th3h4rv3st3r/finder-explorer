@@ -1,5 +1,7 @@
 // Copyright (c) Finder Explorer. All rights reserved.
 
+using System.Collections.Generic;
+
 namespace FinderExplorer.Core.Models;
 
 /// <summary>
@@ -94,4 +96,18 @@ public sealed class AppSettings
 
     /// <summary>Nextcloud App Password (generated in Nextcloud Security settings).</summary>
     public string NextcloudAppPassword { get; set; } = string.Empty;
+
+    // -----------------------------------------------------------------------
+    // Network
+    // -----------------------------------------------------------------------
+
+    /// <summary>User-defined network and folder shortcuts shown under Network.</summary>
+    public List<NetworkLocationBookmark> NetworkLocations { get; set; } = [];
+}
+
+/// <summary>Persisted network bookmark entry.</summary>
+public sealed class NetworkLocationBookmark
+{
+    public string Label { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
 }

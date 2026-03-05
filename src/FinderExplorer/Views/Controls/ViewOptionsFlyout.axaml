@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FinderExplorer.ViewModels"
+             x:Class="FinderExplorer.Views.Controls.ViewOptionsFlyout"
+             x:DataType="vm:MainWindowViewModel">
+
+    <Border Classes="view-options-flyout-shell">
+        <StackPanel Width="420" Spacing="12">
+            <TextBlock Text="Layout"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+
+            <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="8">
+                <Button Grid.Column="0"
+                        Classes="view-layout-btn"
+                        Classes.active="{CompiledBinding IsLayoutDetails}"
+                        Command="{CompiledBinding SetLayoutModeCommand}"
+                        CommandParameter="Details">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.Details}"
+                                  Width="16" Height="16" />
+                        <TextBlock Text="Details" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="1"
+                        Classes="view-layout-btn"
+                        Classes.active="{CompiledBinding IsLayoutList}"
+                        Command="{CompiledBinding SetLayoutModeCommand}"
+                        CommandParameter="List">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.List}"
+                                  Width="16" Height="16" />
+                        <TextBlock Text="List" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="2"
+                        Classes="view-layout-btn"
+                        Classes.active="{CompiledBinding IsLayoutCards}"
+                        Command="{CompiledBinding SetLayoutModeCommand}"
+                        CommandParameter="Cards">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.Tiles}"
+                                  Width="16" Height="16" />
+                        <TextBlock Text="Cards" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="3"
+                        Classes="view-layout-btn"
+                        Classes.active="{CompiledBinding IsLayoutGrid}"
+                        Command="{CompiledBinding SetLayoutModeCommand}"
+                        CommandParameter="Grid">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.Grid.28}"
+                                  Width="16" Height="16" />
+                        <TextBlock Text="Grid" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="4"
+                        Classes="view-layout-btn"
+                        Classes.active="{CompiledBinding IsLayoutColumns}"
+                        Command="{CompiledBinding SetLayoutModeCommand}"
+                        CommandParameter="Columns">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <PathIcon Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.Columns}"
+                                  Width="16" Height="16" />
+                        <TextBlock Text="Columns" FontSize="12" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Border Classes="view-options-divider" />
+
+            <TextBlock Text="Size"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+
+            <StackPanel Spacing="6">
+                <Slider Minimum="0"
+                        Maximum="4"
+                        SmallChange="0.1"
+                        LargeChange="0.5"
+                        Value="{CompiledBinding ViewSizeSliderValue, Mode=TwoWay}" />
+
+                <Grid ColumnDefinitions="*,*,*,*,*">
+                    <PathIcon Grid.Column="0" Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.List}" Width="15" Height="15" />
+                    <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.Details}" Width="15" Height="15" />
+                    <PathIcon Grid.Column="2" Data="{DynamicResource Icon.Files.App.ThemedIcons.IconLayout.Tiles}" Width="15" Height="15" />
+                    <PathIcon Grid.Column="3" Data="{DynamicResource Icon.Pictures}" Width="15" Height="15" />
+                    <PathIcon Grid.Column="4" Data="{DynamicResource Icon.Pictures}" Width="18" Height="18" />
+                </Grid>
+            </StackPanel>
+
+            <Border Classes="view-options-divider" />
+
+            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="Hidden items" VerticalAlignment="Center" />
+                <ToggleSwitch Grid.Column="1"
+                              IsChecked="{CompiledBinding ShowHiddenItems, Mode=TwoWay}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="File extensions" VerticalAlignment="Center" />
+                <ToggleSwitch Grid.Column="1"
+                              IsChecked="{CompiledBinding ShowFileExtensions, Mode=TwoWay}" />
+            </Grid>
+
+            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="Automatically choose the best layout" VerticalAlignment="Center" />
+                <ToggleSwitch Grid.Column="1"
+                              IsChecked="{CompiledBinding AutoChooseBestLayout, Mode=TwoWay}" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

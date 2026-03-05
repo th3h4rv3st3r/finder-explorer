@@ -12,6 +12,8 @@
     </UserControl.Resources>
 
     <Border Margin="8"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
             Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
             BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
             BorderThickness="1"
@@ -28,9 +30,15 @@
                 <StackPanel Orientation="Horizontal" Spacing="2">
                     <Button Classes="segmented-control" Classes.active="{CompiledBinding IsDetailsTabSelected}"
                             Content="Details"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                             Command="{CompiledBinding ShowDetailsTabCommand}" />
                     <Button Classes="segmented-control" Classes.active="{CompiledBinding IsPreviewTabSelected}"
                             Content="Preview"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                             Command="{CompiledBinding ShowPreviewTabCommand}" />
                 </StackPanel>
             </Border>
@@ -40,10 +48,10 @@
                           HorizontalScrollBarVisibility="Disabled"
                           IsVisible="{CompiledBinding IsDetailsTabSelected}">
                 <StackPanel Margin="16,4,16,16" Spacing="0">
-                    <Grid Height="280"
-                          MaxWidth="420"
-                          HorizontalAlignment="Stretch"
-                          Margin="0,4,0,18">
+                    <Grid Margin="0,4,0,18"
+                          Height="220"
+                          MaxWidth="380"
+                          HorizontalAlignment="Stretch">
                         <Image Source="{CompiledBinding DetailsIconImagePath, Converter={StaticResource UriToBitmap}}"
                                HorizontalAlignment="Stretch"
                                VerticalAlignment="Center"
@@ -51,8 +59,8 @@
                                RenderOptions.BitmapInterpolationMode="HighQuality"
                                IsVisible="{CompiledBinding DetailsHasImageIcon}" />
                         <PathIcon Data="{CompiledBinding DetailsIconResourceKey, Converter={StaticResource IconKeyConverter}}"
-                                  Width="220"
-                                  Height="220"
+                                  Width="180"
+                                  Height="180"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
                                   Foreground="{DynamicResource AccentFillColorDefaultBrush}"
@@ -76,7 +84,6 @@
                     <TextBlock Text="Item path" Classes="details-header" />
                     <TextBlock Text="{CompiledBinding DetailsPathText}"
                                Classes="details-value"
-                               Foreground="{DynamicResource AccentFillColorDefaultBrush}"
                                TextWrapping="Wrap"
                                Margin="0,0,0,14" />
 
@@ -96,15 +103,33 @@
             </ScrollViewer>
 
             <Grid Grid.Row="1"
-                  IsVisible="{CompiledBinding IsPreviewTabSelected}">
-                <native:NativePreviewControl FilePath="{CompiledBinding PreviewFilePath}"
-                                             Margin="12"
-                                             IsVisible="{CompiledBinding IsPreviewAvailable}" />
+                  IsVisible="{CompiledBinding IsPreviewTabSelected}"
+                  Margin="12,6,12,12"
+                  RowDefinitions="*,Auto">
+                <Border Grid.Row="0"
+                        Classes="preview-host-shell"
+                        IsVisible="{CompiledBinding IsPreviewAvailable}">
+                    <native:NativePreviewControl FilePath="{CompiledBinding PreviewFilePath}" />
+                </Border>
 
-                <TextBlock Text="{CompiledBinding PreviewStatusText}"
+                <Border Grid.Row="0"
+                        Classes="preview-host-shell"
+                        Padding="16"
+                        IsVisible="{CompiledBinding HasPreviewFallbackImage}">
+                    <Image Source="{CompiledBinding PreviewFallbackImagePath, Converter={StaticResource UriToBitmap}}"
+                           HorizontalAlignment="Stretch"
+                           VerticalAlignment="Center"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapInterpolationMode="HighQuality" />
+                </Border>
+
+                <TextBlock Grid.Row="1"
+                           Text="{CompiledBinding PreviewStatusText}"
+                           Margin="0,10,0,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
-                           IsVisible="{CompiledBinding !IsPreviewAvailable}"
+                           TextAlignment="Center"
+                           IsVisible="{CompiledBinding ShowPreviewStatusText}"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
             </Grid>
         </Grid>

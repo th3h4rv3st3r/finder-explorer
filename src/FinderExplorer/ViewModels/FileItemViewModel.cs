@@ -18,8 +18,12 @@ public partial class FileItemViewModel : ObservableObject
     [ObservableProperty] private string _iconResourceKey = "Icon.Files.App.ThemedIcons.File";
     [ObservableProperty] private string? _iconImagePath;
     [ObservableProperty] private bool _isNextcloudItem;
+    [ObservableProperty] private bool _showFileExtension = true;
 
     public string Extension => IsDirectory ? string.Empty : Path.GetExtension(Name);
+    public string DisplayName => !IsDirectory && !ShowFileExtension
+        ? Path.GetFileNameWithoutExtension(Name)
+        : Name;
     public string SizeDisplay => IsDirectory ? "--" : FormatSize(Size ?? 0);
     public bool HasImageIcon => !string.IsNullOrWhiteSpace(IconImagePath);
 
@@ -41,6 +45,8 @@ public partial class FileItemViewModel : ObservableObject
     }
 
     partial void OnIconImagePathChanged(string? value) => OnPropertyChanged(nameof(HasImageIcon));
+    partial void OnNameChanged(string value) => OnPropertyChanged(nameof(DisplayName));
+    partial void OnShowFileExtensionChanged(bool value) => OnPropertyChanged(nameof(DisplayName));
 
     private static string FormatSize(long bytes) => bytes switch
     {

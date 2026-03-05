@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:FinderExplorer.ViewModels"
+             xmlns:controls="using:FinderExplorer.Views.Controls"
              mc:Ignorable="d"
              d:DesignWidth="960"
              d:DesignHeight="44"
@@ -146,28 +147,9 @@
                             <PathIcon Data="{DynamicResource Icon.ChevronDown}" Width="8" Height="8" />
                         </StackPanel>
                         <Button.Flyout>
-                            <MenuFlyout>
-                                <MenuItem Header="Layout">
-                                    <MenuItem Header="Details" ToggleType="CheckBox" IsChecked="True" />
-                                    <MenuItem Header="List" ToggleType="CheckBox" IsEnabled="False" />
-                                    <MenuItem Header="Cards" ToggleType="CheckBox" IsEnabled="False" />
-                                    <MenuItem Header="Grid" ToggleType="CheckBox" IsEnabled="False" />
-                                    <MenuItem Header="Columns" ToggleType="CheckBox" IsEnabled="False" />
-                                </MenuItem>
-                                <Separator />
-                                <MenuItem Header="Hidden items"
-                                          ToggleType="CheckBox"
-                                          IsChecked="{CompiledBinding ShowHiddenItems}"
-                                          Command="{CompiledBinding ToggleHiddenItemsCommand}" />
-                                <MenuItem Header="File extensions"
-                                          ToggleType="CheckBox"
-                                          IsChecked="True"
-                                          IsEnabled="False" />
-                                <MenuItem Header="Automatically choose the best layout"
-                                          ToggleType="CheckBox"
-                                          IsChecked="True"
-                                          IsEnabled="False" />
-                            </MenuFlyout>
+                            <Flyout Placement="BottomEdgeAlignedRight">
+                                <controls:ViewOptionsFlyout DataContext="{Binding}" />
+                            </Flyout>
                         </Button.Flyout>
                     </Button>
 

@@ -28,6 +28,7 @@
         <KeyBinding Gesture="F2" Command="{Binding RenameSelectedItemCommand}" />
         <KeyBinding Gesture="Ctrl+T" Command="{Binding NewTabCommand}" />
         <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseCurrentTabCommand}" />
+        <KeyBinding Gesture="Space" Command="{Binding OpenQuickLookCommand}" />
         <KeyBinding Gesture="Escape" Command="{Binding CloseSettingsCommand}" />
     </Window.KeyBindings>
 
@@ -44,25 +45,29 @@
 
             <controls:TabBar Grid.Row="0" />
             <controls:NavigationBar Grid.Row="1" />
+            <!--
+                Layout principal: 3 colunas (Sidebar | SidebarSplitter | Content*).
+                O DetailsPane fica DENTRO da coluna Content via grid aninhado.
+                Isso elimina completamente o bug de coluna fantasma quando o details
+                pane está oculto — não há colunas zero-width no grid externo.
+            -->
             <Grid Grid.Row="2" RowDefinitions="44,*">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="{CompiledBinding SidebarPaneWidth, Mode=TwoWay}"
+                    <ColumnDefinition Width="{Binding SidebarPaneWidth, Mode=TwoWay}"
                                       MinWidth="220"
                                       MaxWidth="420" />
                     <ColumnDefinition Width="2" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="{CompiledBinding DetailsSplitterWidth}" />
-                    <ColumnDefinition Width="{CompiledBinding DetailsPaneWidth, Mode=TwoWay}"
-                                      MinWidth="260"
-                                      MaxWidth="560" />
                 </Grid.ColumnDefinitions>
 
+                <!-- Sidebar -->
                 <Border Grid.RowSpan="2"
                         Grid.Column="0"
                         Background="{DynamicResource App.Theme.Sidebar.BackgroundBrush}">
                     <controls:Sidebar />
                 </Border>
 
+                <!-- Sidebar resize splitter -->
                 <GridSplitter Grid.RowSpan="2"
                               Grid.Column="1"
                               Background="Transparent"
@@ -70,33 +75,50 @@
                               ResizeDirection="Columns"
                               HorizontalAlignment="Center" />
 
-                <controls:ContentToolbar Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="3" />
+                <!-- Toolbar: row 0, abrange toda a content area -->
+                <controls:ContentToolbar Grid.Row="0" Grid.Column="2" />
 
-                <Border Grid.Row="1"
-                        Grid.Column="2"
-                        Background="{DynamicResource App.Theme.FileArea.BackgroundBrush}">
-                    <controls:FileList />
-                </Border>
+                <!--
+                    Content area (row 1): grid aninhado com FileList e DetailsPane.
+                    Col 0 (*): FileList — sempre preenche o espaço disponível.
+                    Col 1 (Auto): borda + splitter invisível de 5px para resize.
+                    Col 2 (DetailsPaneWidth): DetailsPane — quando IsVisible=false
+                             a coluna some porque o conteúdo não tem MinWidth forçado.
+                    O VM já controla DetailsPaneWidth=0 e DetailsPaneMinWidth=0
+                    quando IsDetailsPaneVisible=false.
+                -->
+                <Grid Grid.Row="1" Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="{Binding DetailsPaneWidth, Mode=TwoWay}"
+                                          MinWidth="{CompiledBinding DetailsPaneMinWidth}"
+                                          MaxWidth="560" />
+                    </Grid.ColumnDefinitions>
 
-                <Border Grid.Row="1"
-                        Grid.Column="3"
-                        Background="{DynamicResource ControlStrokeColorDefaultBrush}"
-                        Width="1"
-                        IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
-                <GridSplitter Grid.Row="1"
-                              Grid.Column="3"
-                              Background="Transparent"
-                              Width="5"
-                              ResizeDirection="Columns"
-                              HorizontalAlignment="Center"
-                              IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+                    <!-- FileList: col 0, fill completo -->
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource App.Theme.FileArea.BackgroundBrush}">
+                        <controls:FileList />
+                    </Border>
 
-                <Border Grid.Row="1"
-                        Grid.Column="4"
-                        Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
-                        IsVisible="{CompiledBinding IsDetailsPaneVisible}">
-                    <controls:DetailsPane />
-                </Border>
+                    <!-- Splitter: visível apenas quando details pane está aberto.
+                         Width=6 invisível sobrepõe a borda direita do FileList.
+                         Quando IsVisible=false, col 1 (Auto) colapsa para 0. -->
+                    <GridSplitter Grid.Column="1"
+                                  Background="Transparent"
+                                  Width="6"
+                                  ResizeDirection="Columns"
+                                  HorizontalAlignment="Stretch"
+                                  IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+
+                    <!-- Details pane: col 2 -->
+                    <Border Grid.Column="2"
+                            Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
+                            IsVisible="{CompiledBinding IsDetailsPaneVisible}">
+                        <controls:DetailsPane />
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
 

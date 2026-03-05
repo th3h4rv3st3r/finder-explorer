@@ -18,11 +18,13 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace FinderExplorer.ViewModels;
 
@@ -34,17 +36,54 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly ILifecycleService _lifecycleService;
     private readonly IDefaultFileManagerService _defaultFileManagerService;
+    private readonly INextcloudService _nextcloud;
     private CancellationTokenSource? _loadCts;
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _iconCts;
     private CancellationTokenSource? _detailsIconCts;
+    private CancellationTokenSource? _previewCts;
     private readonly SemaphoreSlim _iconResolveLimiter = new(8);
     private readonly string _shellIconCacheDir;
     private bool _suppressSettingsSync;
     private readonly List<string> _clipboardPaths = [];
+    private string? _quickLookExecutablePath;
+    private bool _quickLookPathResolved;
+    private readonly List<SettingsActionItemViewModel> _allSettingsActionItems = [];
     private ClipboardOperation _clipboardOperation = ClipboardOperation.None;
 
     private const int OperationCanceledHResult = unchecked((int)0x800704C7);
+    private const string NetworkSentinelPath = @"\\Network";
+    private static readonly IReadOnlyList<SettingsActionDefinition> SettingsActionCatalog =
+    [
+        new("Navigate back", "NavigateBackCommand", "Alt+Left"),
+        new("Navigate forward", "NavigateForwardCommand", "Alt+Right"),
+        new("Navigate up", "NavigateUpCommand", "Alt+Up"),
+        new("Refresh current folder", "RefreshCommand", "F5"),
+        new("Search in current folder", "SearchCommand", "Not set"),
+        new("Clear current search", "ClearSearchCommand", "Not set"),
+        new("Create new folder", "CreateNewFolderCommand", "Ctrl+Shift+N"),
+        new("Open selected item", "OpenSelectedItemCommand", "Enter"),
+        new("Preview with QuickLook", "OpenQuickLookCommand", "Space"),
+        new("Delete selected item", "DeleteSelectedItemCommand", "Delete"),
+        new("Cut selected item", "CutSelectedItemCommand", "Ctrl+X"),
+        new("Copy selected item", "CopySelectedItemCommand", "Ctrl+C"),
+        new("Paste from clipboard", "PasteFromClipboardCommand", "Ctrl+V"),
+        new("Rename selected item", "RenameSelectedItemCommand", "F2"),
+        new("Copy selected path", "CopyPathCommand", "Not set"),
+        new("Share selected item", "ShareSelectedItemCommand", "Not set"),
+        new("Generate Nextcloud public link", "GeneratePublicLinkCommand", "Not set"),
+        new("Generate Nextcloud internal link", "GenerateInternalLinkCommand", "Not set"),
+        new("Open new tab", "NewTabCommand", "Ctrl+T"),
+        new("Close current tab", "CloseCurrentTabCommand", "Ctrl+W"),
+        new("Close other tabs", "CloseOtherTabsCommand", "Not set"),
+        new("Toggle details pane", "ToggleDetailsPaneCommand", "Not set"),
+        new("Show details pane tab", "ShowDetailsTabCommand", "Not set"),
+        new("Show preview pane tab", "ShowPreviewTabCommand", "Not set"),
+        new("Open properties", "ShowPropertiesCommand", "Not set"),
+        new("Toggle hidden items", "ToggleHiddenItemsCommand", "Not set"),
+        new("Open settings", "OpenSettingsCommand", "Not set"),
+        new("Close settings", "CloseSettingsCommand", "Escape")
+    ];
 
     [ObservableProperty]
     private string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -65,6 +104,7 @@ public partial class MainWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(CopySelectedItemCommand))]
     [NotifyCanExecuteChangedFor(nameof(RenameSelectedItemCommand))]
     [NotifyCanExecuteChangedFor(nameof(ShareSelectedItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenQuickLookCommand))]
     private FileItemViewModel? _selectedItem;
 
     [ObservableProperty]
@@ -72,6 +112,9 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<SidebarItemViewModel> _sidebarVolumes = [];
+
+    [ObservableProperty]
+    private ObservableCollection<SidebarItemViewModel> _sidebarNetworkLocations = [];
 
     [ObservableProperty]
     private ObservableCollection<ExplorerTabViewModel> _tabs = [];
@@ -138,6 +181,40 @@ public partial class MainWindowViewModel : ObservableObject
     private string _settingsOperationNotice = string.Empty;
 
     [ObservableProperty]
+    private ObservableCollection<SettingsActionItemViewModel> _settingsActionItems = [];
+
+    [ObservableProperty]
+    private string _settingsActionSearchQuery = string.Empty;
+
+    // -----------------------------------------------------------------------
+    // Nextcloud Setup Wizard State
+    // -----------------------------------------------------------------------
+
+    [ObservableProperty]
+    private int _ncSetupStep; // 0 = overview, 1 = URL, 2 = credentials
+
+    [ObservableProperty]
+    private string _ncSetupUrl = string.Empty;
+
+    [ObservableProperty]
+    private string _ncSetupUser = string.Empty;
+
+    [ObservableProperty]
+    private string _ncSetupPassword = string.Empty;
+
+    [ObservableProperty]
+    private bool _isNcSetupUrlValid;
+
+    [ObservableProperty]
+    private bool _isNcSetupConnecting;
+
+    [ObservableProperty]
+    private string _ncSetupStatusMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _isNcConnected;
+
+    [ObservableProperty]
     private bool _isDetailsPaneVisible = true;
 
     [ObservableProperty]
@@ -169,6 +246,30 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _showHiddenItems;
+
+    [ObservableProperty]
+    private bool _showFileExtensions = true;
+
+    [ObservableProperty]
+    private bool _autoChooseBestLayout = true;
+
+    [ObservableProperty]
+    private double _viewSizeSliderValue = 1.0;
+
+    [ObservableProperty]
+    private ExplorerLayoutMode _activeLayoutMode = ExplorerLayoutMode.Details;
+
+    [ObservableProperty]
+    private GridLength _nameColumnWidth = new(1, GridUnitType.Star);
+
+    [ObservableProperty]
+    private GridLength _dateModifiedColumnWidth = new(190);
+
+    [ObservableProperty]
+    private GridLength _typeColumnWidth = new(130);
+
+    [ObservableProperty]
+    private GridLength _sizeColumnWidth = new(100);
 
     [ObservableProperty]
     private string _itemCountText = string.Empty;
@@ -207,6 +308,9 @@ public partial class MainWindowViewModel : ObservableObject
     private string _previewStatusText = "Select a file to preview";
 
     [ObservableProperty]
+    private string? _previewFallbackImagePath;
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NavigateBackCommand))]
     private bool _canNavigateBack;
 
@@ -239,6 +343,15 @@ public partial class MainWindowViewModel : ObservableObject
         Cut
     }
 
+    public enum ExplorerLayoutMode
+    {
+        Details,
+        List,
+        Cards,
+        Grid,
+        Columns
+    }
+
     public SidebarItemViewModel SidebarHome { get; }
     public SidebarItemViewModel SidebarNetwork { get; }
     public SidebarItemViewModel SidebarNextcloud { get; }
@@ -251,6 +364,12 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsSortBySize => ActiveSortField == SortField.Size;
     public bool IsSortDescending => !IsSortAscending;
     public string SortDirectionIconKey => IsSortAscending ? "Icon.ChevronUp" : "Icon.ChevronDown";
+    public bool IsLayoutDetails => ActiveLayoutMode == ExplorerLayoutMode.Details;
+    public bool IsLayoutList => ActiveLayoutMode == ExplorerLayoutMode.List;
+    public bool IsLayoutCards => ActiveLayoutMode == ExplorerLayoutMode.Cards;
+    public bool IsLayoutGrid => ActiveLayoutMode == ExplorerLayoutMode.Grid;
+    public bool IsLayoutColumns => ActiveLayoutMode == ExplorerLayoutMode.Columns;
+    public double FileListIconSize => Math.Clamp(14 + (ViewSizeSliderValue * 2), 14, 24);
     public bool HasClipboardItems => _clipboardPaths.Count > 0;
     public bool IsSettingsGeneralSection => string.Equals(SettingsSection, "general", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsAppearanceSection => string.Equals(SettingsSection, "appearance", StringComparison.OrdinalIgnoreCase);
@@ -258,12 +377,18 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsSettingsFilesFoldersSection => string.Equals(SettingsSection, "files_folders", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsActionsSection => string.Equals(SettingsSection, "actions", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsAdvancedSection => string.Equals(SettingsSection, "advanced", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsCloudSection => string.Equals(SettingsSection, "cloud", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsAboutSection => string.Equals(SettingsSection, "about", StringComparison.OrdinalIgnoreCase);
+    public double DetailsPaneMinWidth => IsDetailsPaneVisible ? 260 : 0;
+    public bool IsNcSetupStepOverview => NcSetupStep == 0;
+    public bool IsNcSetupStepUrl => NcSetupStep == 1;
+    public bool IsNcSetupStepCredentials => NcSetupStep == 2;
     public bool HasSettingsOperationNotice => !string.IsNullOrWhiteSpace(SettingsOperationNotice);
     public string AboutVersionText =>
         typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
     public string AboutAuthorText => "th3h4rv3st3r";
     public string SupportedLanguagesText => "pt-BR, en_GB";
+    public string SettingsActionCountText => $"{SettingsActionItems.Count} commands";
     public string SettingsSectionTitle => SettingsSection switch
     {
         "general" => "General",
@@ -272,6 +397,7 @@ public partial class MainWindowViewModel : ObservableObject
         "files_folders" => "Files & folders",
         "actions" => "Actions",
         "advanced" => "Advanced",
+        "cloud" => "Cloud",
         "about" => "About",
         _ => "General"
     };
@@ -282,7 +408,8 @@ public partial class MainWindowViewModel : ObservableObject
         IThumbnailService thumbnailService,
         ISettingsService settingsService,
         ILifecycleService lifecycleService,
-        IDefaultFileManagerService defaultFileManagerService)
+        IDefaultFileManagerService defaultFileManagerService,
+        INextcloudService nextcloudService)
     {
         _fileSystem = fileSystem;
         _searchService = searchService;
@@ -290,21 +417,24 @@ public partial class MainWindowViewModel : ObservableObject
         _settingsService = settingsService;
         _lifecycleService = lifecycleService;
         _defaultFileManagerService = defaultFileManagerService;
+        _nextcloud = nextcloudService;
         _shellIconCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "FinderExplorer",
             "icons");
         Directory.CreateDirectory(_shellIconCacheDir);
         LoadPersistedSettings();
+        InitializeSettingsActions();
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         SidebarHome = new SidebarItemViewModel("Home", userProfile, GetSidebarIconUri("home"));
-        SidebarNetwork = new SidebarItemViewModel("Network", string.Empty, GetSidebarIconUri("network"), canNavigate: false);
-        SidebarNextcloud = new SidebarItemViewModel("Nextcloud", string.Empty, GetSidebarIconUri("nextcloud"), canNavigate: false);
+        SidebarNetwork = new SidebarItemViewModel("Network", NetworkSentinelPath, GetSidebarIconUri("network"), canNavigate: true, itemType: SidebarItemType.Network);
+        SidebarNextcloud = new SidebarItemViewModel("Nextcloud", "nc:///", GetSidebarIconUri("nextcloud"), canNavigate: true, itemType: SidebarItemType.Nextcloud);
         SidebarHome.IsSelected = true;
 
         InitializeSidebar();
+        InitializeNetworkLocations();
 
         var initialTab = CreateTab(userProfile);
         initialTab.IsSelected = true;
@@ -320,6 +450,7 @@ public partial class MainWindowViewModel : ObservableObject
         UpdateDetailsState();
         UpdatePreviewState();
         _ = ResolveSelectedItemDetailsIconAsync(value);
+        _ = ResolveSelectedItemPreviewAsync(value);
     }
 
     partial void OnCurrentPathChanged(string value)
@@ -328,8 +459,18 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     public bool DetailsHasImageIcon => !string.IsNullOrWhiteSpace(DetailsIconImagePath);
+    public bool HasPreviewFallbackImage => !string.IsNullOrWhiteSpace(PreviewFallbackImagePath);
+    public bool ShowPreviewStatusText => !IsPreviewAvailable && !HasPreviewFallbackImage;
 
     partial void OnDetailsIconImagePathChanged(string? value) => OnPropertyChanged(nameof(DetailsHasImageIcon));
+    partial void OnPreviewFallbackImagePathChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasPreviewFallbackImage));
+        OnPropertyChanged(nameof(ShowPreviewStatusText));
+    }
+
+    partial void OnIsPreviewAvailableChanged(bool value)
+        => OnPropertyChanged(nameof(ShowPreviewStatusText));
 
     partial void OnActiveSortFieldChanged(SortField value)
     {
@@ -366,11 +507,34 @@ public partial class MainWindowViewModel : ObservableObject
         _suppressSettingsSync = true;
         SettingsShowHiddenFiles = value;
         _suppressSettingsSync = false;
+        _ = LoadDirectoryAsync();
         _ = SaveSettingsAsync();
+    }
+
+    partial void OnShowFileExtensionsChanged(bool value)
+    {
+        foreach (var item in Items)
+            item.ShowFileExtension = value;
+    }
+
+    partial void OnViewSizeSliderValueChanged(double value)
+    {
+        OnPropertyChanged(nameof(FileListIconSize));
+    }
+
+    partial void OnActiveLayoutModeChanged(ExplorerLayoutMode value)
+    {
+        OnPropertyChanged(nameof(IsLayoutDetails));
+        OnPropertyChanged(nameof(IsLayoutList));
+        OnPropertyChanged(nameof(IsLayoutCards));
+        OnPropertyChanged(nameof(IsLayoutGrid));
+        OnPropertyChanged(nameof(IsLayoutColumns));
     }
 
     partial void OnIsDetailsPaneVisibleChanged(bool value)
     {
+        OnPropertyChanged(nameof(DetailsPaneMinWidth));
+
         if (value)
         {
             if (DetailsPaneWidth <= 0)
@@ -402,12 +566,30 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSettingsFilesFoldersSection));
         OnPropertyChanged(nameof(IsSettingsActionsSection));
         OnPropertyChanged(nameof(IsSettingsAdvancedSection));
+        OnPropertyChanged(nameof(IsSettingsCloudSection));
         OnPropertyChanged(nameof(IsSettingsAboutSection));
         OnPropertyChanged(nameof(SettingsSectionTitle));
+
+        // When entering Cloud section, load current settings
+        if (value == "cloud")
+            LoadNcSetupFromSettings();
     }
 
     partial void OnSettingsOperationNoticeChanged(string value)
         => OnPropertyChanged(nameof(HasSettingsOperationNotice));
+
+    partial void OnSettingsActionItemsChanged(ObservableCollection<SettingsActionItemViewModel> value)
+        => OnPropertyChanged(nameof(SettingsActionCountText));
+
+    partial void OnSettingsActionSearchQueryChanged(string value)
+        => ApplySettingsActionFilter();
+
+    partial void OnNcSetupStepChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsNcSetupStepOverview));
+        OnPropertyChanged(nameof(IsNcSetupStepUrl));
+        OnPropertyChanged(nameof(IsNcSetupStepCredentials));
+    }
 
     partial void OnSettingsRunInBackgroundChanged(bool value)
     {
@@ -490,6 +672,8 @@ public partial class MainWindowViewModel : ObservableObject
         }
 
         _settingsService.Current.LanguageCode = normalized;
+        UpdateItemCountText();
+        UpdateDetailsState();
         _ = SaveSettingsAsync();
     }
 
@@ -640,6 +824,102 @@ public partial class MainWindowViewModel : ObservableObject
                 .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIconUri(i.IconKey))));
     }
 
+    private void InitializeNetworkLocations()
+    {
+        var bookmarks = _settingsService.Current.NetworkLocations ?? [];
+        var mapped = new List<SidebarItemViewModel>();
+
+        foreach (var bookmark in bookmarks)
+        {
+            if (bookmark is null || string.IsNullOrWhiteSpace(bookmark.Path))
+                continue;
+
+            var normalizedPath = NormalizeNetworkShortcutPath(bookmark.Path);
+            if (string.IsNullOrWhiteSpace(normalizedPath))
+                continue;
+
+            var label = string.IsNullOrWhiteSpace(bookmark.Label)
+                ? BuildNetworkLocationLabel(normalizedPath)
+                : bookmark.Label.Trim();
+
+            var iconKey = IsUncPath(normalizedPath) ? "network" : "folder";
+            mapped.Add(new SidebarItemViewModel(
+                label,
+                normalizedPath,
+                GetSidebarIconUri(iconKey),
+                canNavigate: true,
+                itemType: SidebarItemType.Network));
+        }
+
+        SidebarNetworkLocations = new ObservableCollection<SidebarItemViewModel>(
+            mapped
+                .GroupBy(item => item.Path, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderBy(item => item.Label, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private async Task SaveNetworkLocationsAsync()
+    {
+        _settingsService.Current.NetworkLocations = SidebarNetworkLocations
+            .Select(item => new NetworkLocationBookmark
+            {
+                Label = item.Label,
+                Path = item.Path
+            })
+            .ToList();
+
+        try
+        {
+            await _settingsService.SaveAsync();
+        }
+        catch
+        {
+            SettingsOperationNotice = "Could not persist network locations right now.";
+        }
+    }
+
+    private void InitializeSettingsActions()
+    {
+        var availableCommandNames = GetAvailableCommandNames();
+        _allSettingsActionItems.Clear();
+        _allSettingsActionItems.AddRange(
+            SettingsActionCatalog
+                .Where(definition => availableCommandNames.Contains(definition.CommandName))
+                .Select(definition =>
+                    new SettingsActionItemViewModel(
+                        definition.Title,
+                        definition.CommandName,
+                        definition.Shortcut))
+                .OrderBy(item => item.Title, StringComparer.OrdinalIgnoreCase));
+
+        ApplySettingsActionFilter();
+    }
+
+    private HashSet<string> GetAvailableCommandNames()
+    {
+        return GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(static property => typeof(ICommand).IsAssignableFrom(property.PropertyType))
+            .Select(static property => property.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private void ApplySettingsActionFilter()
+    {
+        var query = SettingsActionSearchQuery?.Trim();
+        IEnumerable<SettingsActionItemViewModel> filtered = _allSettingsActionItems;
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            filtered = filtered.Where(item =>
+                item.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                item.CommandName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                item.Shortcut.Contains(query, StringComparison.OrdinalIgnoreCase));
+        }
+
+        SettingsActionItems = new ObservableCollection<SettingsActionItemViewModel>(filtered);
+    }
+
     [RelayCommand]
     private async Task NavigateToAsync(string path)
     {
@@ -675,6 +955,21 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanNavigateUp))]
     private async Task NavigateUpAsync()
     {
+        if (IsVirtualNextcloudPath(CurrentPath))
+        {
+            var remotePart = GetNextcloudRemotePath(CurrentPath);
+            if (string.IsNullOrWhiteSpace(remotePart) || remotePart == "/")
+                return; // Already at nc root
+
+            var parentRemote = remotePart.TrimEnd('/').Contains('/')
+                ? remotePart[..remotePart.TrimEnd('/').LastIndexOf('/')]
+                : "/";
+            if (string.IsNullOrWhiteSpace(parentRemote)) parentRemote = "/";
+
+            await NavigateToPathAsync("nc://" + parentRemote, addToHistory: true);
+            return;
+        }
+
         var parent = _fileSystem.GetParentPath(CurrentPath);
         if (parent is null)
             return;
@@ -689,15 +984,71 @@ public partial class MainWindowViewModel : ObservableObject
             return;
 
         if (item.IsDirectory)
+        {
             await NavigateToPathAsync(item.FullPath, addToHistory: true);
-        else
+        }
+        else if (!item.IsNextcloudItem)
+        {
             _fileSystem.OpenFile(item.FullPath);
+        }
+        else
+        {
+            try
+            {
+                var localPath = await _nextcloud.DownloadFileToCacheAsync(item.NextcloudRemotePath);
+                if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
+                    _fileSystem.OpenFile(localPath);
+            }
+            catch
+            {
+                // Ignore download/open failures to keep navigation responsive.
+            }
+        }
     }
 
     [RelayCommand(CanExecute = nameof(HasSelectedItem))]
     private async Task OpenSelectedItemAsync()
     {
         await OpenItemAsync(SelectedItem);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedItem))]
+    private async Task OpenQuickLookAsync()
+    {
+        var item = SelectedItem;
+        if (item is null)
+            return;
+
+        var quickLookExe = ResolveQuickLookExecutablePath();
+        if (string.IsNullOrWhiteSpace(quickLookExe) || !File.Exists(quickLookExe))
+        {
+            IsPreviewAvailable = false;
+            PreviewStatusText = "QuickLook is not installed. Install it and press Space again.";
+            return;
+        }
+
+        var targetPath = await ResolveQuickLookTargetPathAsync(item);
+        if (string.IsNullOrWhiteSpace(targetPath) || (!File.Exists(targetPath) && !Directory.Exists(targetPath)))
+        {
+            IsPreviewAvailable = false;
+            PreviewStatusText = "QuickLook could not open this item.";
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = quickLookExe,
+                Arguments = $"\"{targetPath}\"",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            IsPreviewAvailable = false;
+            PreviewStatusText = "Could not launch QuickLook.";
+        }
     }
 
     [RelayCommand]
@@ -734,7 +1085,49 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private async Task CreateNewFolderAsync()
     {
-        if (string.IsNullOrWhiteSpace(CurrentPath) || !_fileSystem.DirectoryExists(CurrentPath))
+        if (string.IsNullOrWhiteSpace(CurrentPath))
+            return;
+
+        if (IsVirtualNextcloudPath(CurrentPath))
+        {
+            const string defaultRemoteName = "New folder";
+            var remoteBase = GetNextcloudRemotePath(CurrentPath).TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(remoteBase))
+                remoteBase = "/";
+
+            var remoteFolderName = defaultRemoteName;
+            var remoteSequence = 2;
+            var existingNames = Items
+                .Where(item => item.IsDirectory)
+                .Select(item => item.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            while (existingNames.Contains(remoteFolderName))
+                remoteFolderName = $"{defaultRemoteName} ({remoteSequence++})";
+
+            var remotePath = remoteBase == "/"
+                ? "/" + remoteFolderName
+                : $"{remoteBase}/{remoteFolderName}";
+
+            try
+            {
+                var created = await _nextcloud.CreateFolderAsync(remotePath);
+                if (!created)
+                    return;
+
+                await LoadDirectoryAsync();
+                SelectedItem = Items.FirstOrDefault(item =>
+                    item.IsDirectory &&
+                    item.Name.Equals(remoteFolderName, StringComparison.OrdinalIgnoreCase));
+            }
+            catch
+            {
+                // Ignore create failures for remote providers.
+            }
+            return;
+        }
+
+        if (IsNetworkSentinelPath(CurrentPath) || !_fileSystem.DirectoryExists(CurrentPath))
             return;
 
         const string defaultName = "New folder";
@@ -919,6 +1312,74 @@ public partial class MainWindowViewModel : ObservableObject
         return desktop.MainWindow;
     }
 
+    // -----------------------------------------------------------------------
+    // Nextcloud Share Commands
+    // -----------------------------------------------------------------------
+
+    [RelayCommand]
+    private async Task GeneratePublicLinkAsync()
+    {
+        if (SelectedItem is null || !SelectedItem.IsNextcloudItem)
+            return;
+
+        try
+        {
+            var remotePath = SelectedItem.NextcloudRemotePath;
+            var url = await _nextcloud.CreatePublicShareAsync(remotePath);
+
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                var owner = TryGetOwnerWindow();
+                if (owner?.Clipboard is not null)
+                    await owner.Clipboard.SetTextAsync(url);
+            }
+        }
+        catch { /* Share creation failed silently */ }
+    }
+
+    [RelayCommand]
+    private async Task GenerateInternalLinkAsync()
+    {
+        if (SelectedItem is null || !SelectedItem.IsNextcloudItem)
+            return;
+
+        try
+        {
+            var remotePath = SelectedItem.NextcloudRemotePath;
+            var url = await _nextcloud.CreateInternalShareAsync(remotePath);
+
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                var owner = TryGetOwnerWindow();
+                if (owner?.Clipboard is not null)
+                    await owner.Clipboard.SetTextAsync(url);
+            }
+        }
+        catch { /* Share creation failed silently */ }
+    }
+
+    [RelayCommand]
+    private async Task CopyPathAsync()
+    {
+        if (SelectedItem is null)
+            return;
+
+        var owner = TryGetOwnerWindow();
+        if (owner?.Clipboard is not null)
+            await owner.Clipboard.SetTextAsync(SelectedItem.FullPath);
+    }
+
+    [RelayCommand]
+    private async Task NewTabFromPathAsync(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        var tab = CreateTab(path);
+        Tabs.Add(tab);
+        await SelectTabAsync(tab);
+    }
+
     private static IntPtr TryGetOwnerWindowHandle()
     {
         return TryGetOwnerWindow()?.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
@@ -978,10 +1439,22 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ToggleHiddenItemsAsync()
+    private Task ToggleHiddenItemsAsync()
     {
         ShowHiddenItems = !ShowHiddenItems;
-        await LoadDirectoryAsync();
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private void SetLayoutMode(string? layoutModeName)
+    {
+        if (string.IsNullOrWhiteSpace(layoutModeName) ||
+            !Enum.TryParse(layoutModeName, ignoreCase: true, out ExplorerLayoutMode layoutMode))
+        {
+            return;
+        }
+
+        ActiveLayoutMode = layoutMode;
     }
 
     [RelayCommand]
@@ -1018,6 +1491,7 @@ public partial class MainWindowViewModel : ObservableObject
                 {
                     IconImagePath = iconImagePath,
                     IconResourceKey = iconResourceKey,
+                    ShowFileExtension = ShowFileExtensions,
                     Name = result.Name,
                     FullPath = result.FullPath,
                     IsDirectory = result.IsDirectory,
@@ -1032,7 +1506,7 @@ public partial class MainWindowViewModel : ObservableObject
 
             var dirs = Items.Count(i => i.IsDirectory);
             var files = Items.Count - dirs;
-            ItemCountText = $"{dirs} pastas, {files} arquivos";
+            ItemCountText = FormatItemCount(dirs, files);
             UpdateDetailsState();
         }
         catch (OperationCanceledException)
@@ -1082,6 +1556,20 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
+            if (item.IsNextcloudItem)
+            {
+                var remotePath = item.NextcloudRemotePath;
+                if (string.IsNullOrWhiteSpace(remotePath))
+                    return;
+
+                var deletedRemote = await _nextcloud.DeleteAsync(remotePath);
+                if (!deletedRemote)
+                    return;
+
+                await LoadDirectoryAsync();
+                return;
+            }
+
             var deleted = false;
             if (OperatingSystem.IsWindows())
             {
@@ -1175,6 +1663,242 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void AddCommandMapping()
+    {
+        SettingsOperationNotice = "Add command is not implemented yet.";
+    }
+
+    [RelayCommand]
+    private void RestoreDefaultActionMappings()
+    {
+        SettingsActionSearchQuery = string.Empty;
+        InitializeSettingsActions();
+        SettingsOperationNotice = "Actions restored to current defaults.";
+    }
+
+    [RelayCommand]
+    private async Task AddNetworkLocationAsync()
+    {
+        var owner = TryGetOwnerWindow();
+        if (owner is null)
+            return;
+
+        var dialog = new TextInputDialog(
+            title: "Add network location",
+            message: "Enter a network path (example: \\\\server\\share)",
+            confirmButtonText: "Add",
+            initialValue: "\\\\");
+
+        var value = await dialog.ShowDialog<string?>(owner);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        await AddNetworkLocationCoreAsync(value, requireUncPath: true);
+    }
+
+    [RelayCommand]
+    private async Task AddNetworkFolderAsync()
+    {
+        var owner = TryGetOwnerWindow();
+        if (owner is null)
+            return;
+
+        var dialog = new TextInputDialog(
+            title: "Add folder shortcut",
+            message: "Enter a local or network folder path",
+            confirmButtonText: "Add",
+            initialValue: CurrentPath);
+
+        var value = await dialog.ShowDialog<string?>(owner);
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        await AddNetworkLocationCoreAsync(value, requireUncPath: false);
+    }
+
+    [RelayCommand]
+    private async Task RemoveNetworkLocationAsync(SidebarItemViewModel? item)
+    {
+        if (item is null)
+            return;
+
+        var existing = SidebarNetworkLocations.FirstOrDefault(x =>
+            string.Equals(x.Path, item.Path, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+            return;
+
+        SidebarNetworkLocations.Remove(existing);
+        if (string.Equals(CurrentPath, NetworkSentinelPath, StringComparison.OrdinalIgnoreCase))
+            await LoadDirectoryAsync();
+
+        await SaveNetworkLocationsAsync();
+    }
+
+    private async Task AddNetworkLocationCoreAsync(string rawPath, bool requireUncPath)
+    {
+        var normalizedPath = NormalizeNetworkShortcutPath(rawPath);
+        if (string.IsNullOrWhiteSpace(normalizedPath))
+            return;
+
+        if (requireUncPath && !IsUncPath(normalizedPath))
+        {
+            SettingsOperationNotice = "Use a network path starting with \\\\.";
+            return;
+        }
+
+        if (!requireUncPath && !IsUncPath(normalizedPath) && !_fileSystem.DirectoryExists(normalizedPath))
+        {
+            SettingsOperationNotice = "Folder does not exist.";
+            return;
+        }
+
+        var existing = SidebarNetworkLocations.FirstOrDefault(item =>
+            string.Equals(item.Path, normalizedPath, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            SettingsOperationNotice = "Location already exists in Network.";
+            return;
+        }
+
+        var iconKey = IsUncPath(normalizedPath) ? "network" : "folder";
+        SidebarNetworkLocations.Add(new SidebarItemViewModel(
+            BuildNetworkLocationLabel(normalizedPath),
+            normalizedPath,
+            GetSidebarIconUri(iconKey),
+            canNavigate: true,
+            itemType: SidebarItemType.Network));
+
+        SortSidebarNetworkLocations();
+        await SaveNetworkLocationsAsync();
+
+        if (string.Equals(CurrentPath, NetworkSentinelPath, StringComparison.OrdinalIgnoreCase))
+            await LoadDirectoryAsync();
+    }
+
+    // -----------------------------------------------------------------------
+    // Nextcloud Setup Wizard Commands
+    // -----------------------------------------------------------------------
+
+    private void LoadNcSetupFromSettings()
+    {
+        var s = _settingsService.Current;
+        NcSetupUrl = s.NextcloudUrl;
+        NcSetupUser = s.NextcloudUser;
+        NcSetupPassword = s.NextcloudAppPassword;
+        IsNcConnected = s.NextcloudEnabled && !string.IsNullOrWhiteSpace(s.NextcloudUrl);
+        IsNcSetupUrlValid = IsValidNextcloudUrl(NcSetupUrl);
+        NcSetupStep = IsNcConnected ? 0 : 0;
+        NcSetupStatusMessage = string.Empty;
+        IsNcSetupConnecting = false;
+    }
+
+    partial void OnNcSetupUrlChanged(string value)
+    {
+        IsNcSetupUrlValid = IsValidNextcloudUrl(value);
+        NcSetupStatusMessage = string.Empty;
+    }
+
+    private static bool IsValidNextcloudUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+    }
+
+    [RelayCommand]
+    private void NcSetupStartSetup()
+    {
+        NcSetupStep = 1;
+        NcSetupStatusMessage = string.Empty;
+    }
+
+    [RelayCommand]
+    private void NcSetupGoToCredentials()
+    {
+        if (!IsNcSetupUrlValid)
+            return;
+
+        NcSetupStep = 2;
+        NcSetupStatusMessage = string.Empty;
+    }
+
+    [RelayCommand]
+    private void NcSetupBack()
+    {
+        if (NcSetupStep > 0)
+            NcSetupStep--;
+
+        NcSetupStatusMessage = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task NcSetupTestAndSaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NcSetupUser) || string.IsNullOrWhiteSpace(NcSetupPassword))
+        {
+            NcSetupStatusMessage = "Please enter username and app password.";
+            return;
+        }
+
+        IsNcSetupConnecting = true;
+        NcSetupStatusMessage = "Connecting…";
+
+        try
+        {
+            var url = NcSetupUrl.TrimEnd('/');
+            var ok = await _nextcloud.TestConnectionAsync(url, NcSetupUser, NcSetupPassword);
+
+            if (ok)
+            {
+                // Persist to settings
+                var s = _settingsService.Current;
+                s.NextcloudEnabled = true;
+                s.NextcloudUrl = url;
+                s.NextcloudUser = NcSetupUser;
+                s.NextcloudAppPassword = NcSetupPassword;
+                await SaveSettingsAsync();
+
+                IsNcConnected = true;
+                NcSetupStep = 0;
+                NcSetupStatusMessage = "Connected successfully! Your Nextcloud is ready.";
+                SettingsOperationNotice = "Nextcloud connected – navigate to it from the sidebar.";
+            }
+            else
+            {
+                NcSetupStatusMessage = "Connection failed. Please check your URL and credentials.";
+            }
+        }
+        catch (Exception ex)
+        {
+            NcSetupStatusMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsNcSetupConnecting = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task NcSetupDisconnectAsync()
+    {
+        var s = _settingsService.Current;
+        s.NextcloudEnabled = false;
+        s.NextcloudUrl = string.Empty;
+        s.NextcloudUser = string.Empty;
+        s.NextcloudAppPassword = string.Empty;
+        await SaveSettingsAsync();
+
+        NcSetupUrl = string.Empty;
+        NcSetupUser = string.Empty;
+        NcSetupPassword = string.Empty;
+        IsNcConnected = false;
+        IsNcSetupUrlValid = false;
+        NcSetupStep = 0;
+        NcSetupStatusMessage = "Nextcloud disconnected.";
+        SettingsOperationNotice = "Nextcloud disconnected.";
+    }
+
+    [RelayCommand]
     private async Task NewTabAsync()
     {
         var newPath = string.IsNullOrWhiteSpace(CurrentPath)
@@ -1249,7 +1973,12 @@ public partial class MainWindowViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(path))
             return;
 
-        if (!_fileSystem.DirectoryExists(path))
+        var isVirtualNc = IsVirtualNextcloudPath(path);
+        var isNetworkSentinel = IsNetworkSentinelPath(path);
+        var isUncPath = IsUncPath(path);
+
+        // For local paths, verify directory exists; skip check for virtual and UNC paths.
+        if (!isVirtualNc && !isNetworkSentinel && !isUncPath && !_fileSystem.DirectoryExists(path))
             return;
 
         var normalizedPath = NormalizePath(path);
@@ -1289,6 +2018,36 @@ public partial class MainWindowViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(CurrentPath))
             return;
 
+        // Nextcloud virtual paths: nc:///Documents/Sub → [Nextcloud] > [Documents] > [Sub]
+        if (IsVirtualNextcloudPath(CurrentPath))
+        {
+            var remotePath = GetNextcloudRemotePath(CurrentPath).TrimStart('/');
+            var parts = string.IsNullOrWhiteSpace(remotePath)
+                ? Array.Empty<string>()
+                : remotePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+            // Root segment
+            BreadcrumbSegments.Add(new BreadcrumbSegmentViewModel(
+                "Nextcloud", "nc:///", false, parts.Length > 0));
+
+            // Path segments
+            var running = "nc://";
+            for (int i = 0; i < parts.Length; i++)
+            {
+                running += "/" + parts[i];
+                BreadcrumbSegments.Add(new BreadcrumbSegmentViewModel(
+                    parts[i], running, true, i < parts.Length - 1));
+            }
+            return;
+        }
+
+        // Network sentinel
+        if (IsNetworkSentinelPath(CurrentPath))
+        {
+            BreadcrumbSegments.Add(new BreadcrumbSegmentViewModel("Network", CurrentPath, false, false));
+            return;
+        }
+
         var normalized = NormalizePath(CurrentPath);
         var segments = new Stack<string>();
         var cursor = normalized;
@@ -1326,11 +2085,31 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            var fsItems = await _fileSystem.GetItemsAsync(
-                CurrentPath,
-                sort: BuildSortOptions(),
-                filter: BuildFilterOptions(),
-                ct);
+            IReadOnlyList<FileSystemItem> fsItems;
+            bool isNcPath = IsVirtualNextcloudPath(CurrentPath);
+
+            if (isNcPath)
+            {
+                var remotePath = GetNextcloudRemotePath(CurrentPath);
+                fsItems = await _nextcloud.GetItemsAsync(
+                    remotePath,
+                    sort: BuildSortOptions(),
+                    filter: BuildFilterOptions(),
+                    ct);
+            }
+            else if (IsNetworkSentinelPath(CurrentPath))
+            {
+                fsItems = BuildNetworkVirtualItems();
+            }
+            else
+            {
+                fsItems = await _fileSystem.GetItemsAsync(
+                    CurrentPath,
+                    sort: BuildSortOptions(),
+                    filter: BuildFilterOptions(),
+                    ct);
+            }
+
             ct.ThrowIfCancellationRequested();
 
             Items.Clear();
@@ -1340,17 +2119,24 @@ public partial class MainWindowViewModel : ObservableObject
             {
                 var (iconImagePath, iconResourceKey) = ResolveFileItemIconResources(fsItem.IsDirectory, fsItem.Extension);
 
+                // For Nextcloud items, convert the WebDAV href back to nc:// path
+                var fullPath = isNcPath
+                    ? ConvertWebDavHrefToNcPath(fsItem.FullPath)
+                    : fsItem.FullPath;
+
                 Items.Add(new FileItemViewModel
                 {
                     IconImagePath = iconImagePath,
                     IconResourceKey = iconResourceKey,
+                    ShowFileExtension = ShowFileExtensions,
                     Name = fsItem.Name,
-                    FullPath = fsItem.FullPath,
+                    FullPath = fullPath,
                     IsDirectory = fsItem.IsDirectory,
                     Size = fsItem.Size,
                     Modified = fsItem.LastModified,
                     Created = fsItem.DateCreated,
-                    Icon = fsItem.IsDirectory ? "Folder" : GetFileIcon(fsItem.Extension)
+                    Icon = fsItem.IsDirectory ? "Folder" : GetFileIcon(fsItem.Extension),
+                    IsNextcloudItem = isNcPath
                 });
             }
 
@@ -1369,6 +2155,51 @@ public partial class MainWindowViewModel : ObservableObject
         {
             IsLoading = false;
         }
+    }
+
+    private IReadOnlyList<FileSystemItem> BuildNetworkVirtualItems()
+    {
+        var result = new List<FileSystemItem>();
+
+        foreach (var location in SidebarNetworkLocations)
+        {
+            if (string.IsNullOrWhiteSpace(location.Path))
+                continue;
+
+            var lastModified = default(DateTime);
+            var created = default(DateTime);
+            var attributes = FileAttributes.Directory;
+
+            try
+            {
+                if (Directory.Exists(location.Path))
+                {
+                    var info = new DirectoryInfo(location.Path);
+                    lastModified = info.LastWriteTime;
+                    created = info.CreationTime;
+                    attributes = info.Attributes;
+                }
+            }
+            catch
+            {
+                // Keep unavailable/offline paths navigable as virtual entries.
+            }
+
+            result.Add(new FileSystemItem
+            {
+                Name = location.Label,
+                FullPath = location.Path,
+                IsDirectory = true,
+                Size = null,
+                LastModified = lastModified,
+                DateCreated = created,
+                Attributes = attributes
+            });
+        }
+
+        return result
+            .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private SortOptions BuildSortOptions() => new(ActiveSortField, IsSortAscending);
@@ -1428,6 +2259,9 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void UpdatePreviewState()
     {
+        _previewCts?.Cancel();
+        PreviewFallbackImagePath = null;
+
         if (SelectedItem is null)
         {
             PreviewFilePath = null;
@@ -1440,7 +2274,27 @@ public partial class MainWindowViewModel : ObservableObject
         {
             PreviewFilePath = null;
             IsPreviewAvailable = false;
-            PreviewStatusText = "Preview is not available for folders";
+            PreviewStatusText = "Preview is not available for folders. Press Space for QuickLook.";
+            return;
+        }
+
+        var extension = SelectedItem.Extension.ToLowerInvariant();
+        if (IsCompressedExtension(extension))
+        {
+            PreviewFilePath = null;
+            IsPreviewAvailable = false;
+            PreviewFallbackImagePath = string.IsNullOrWhiteSpace(DetailsIconImagePath)
+                ? NanaZipIconUri
+                : DetailsIconImagePath;
+            PreviewStatusText = string.Empty;
+            return;
+        }
+
+        if (SelectedItem.IsNextcloudItem)
+        {
+            PreviewFilePath = null;
+            IsPreviewAvailable = false;
+            PreviewStatusText = "Loading preview...";
             return;
         }
 
@@ -1452,12 +2306,11 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var extension = SelectedItem.Extension.ToLowerInvariant();
         if (extension is ".exe" or ".dll" or ".sys" or ".bin")
         {
             PreviewFilePath = null;
             IsPreviewAvailable = false;
-            PreviewStatusText = "Preview is not available for this file type";
+            PreviewStatusText = "Preview is not available for this file type. Press Space for QuickLook.";
             return;
         }
 
@@ -1466,13 +2319,161 @@ public partial class MainWindowViewModel : ObservableObject
         PreviewStatusText = string.Empty;
     }
 
+    private async Task ResolveSelectedItemPreviewAsync(FileItemViewModel? item)
+    {
+        if (item is null || item.IsDirectory || !item.IsNextcloudItem || IsCompressedExtension(item.Extension))
+            return;
+
+        _previewCts = new CancellationTokenSource();
+        var ct = _previewCts.Token;
+
+        try
+        {
+            var remotePath = item.NextcloudRemotePath;
+            if (string.IsNullOrWhiteSpace(remotePath))
+                return;
+
+            var localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, ct);
+            if (ct.IsCancellationRequested)
+                return;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!ReferenceEquals(SelectedItem, item))
+                    return;
+
+                if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
+                {
+                    PreviewFilePath = localPath;
+                    IsPreviewAvailable = true;
+                    PreviewStatusText = string.Empty;
+                }
+                else
+                {
+                    PreviewFilePath = null;
+                    IsPreviewAvailable = false;
+                    PreviewStatusText = "Preview is not available";
+                }
+            });
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Selection changed while resolving preview.
+        }
+        catch
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!ReferenceEquals(SelectedItem, item))
+                    return;
+
+                PreviewFilePath = null;
+                IsPreviewAvailable = false;
+                PreviewStatusText = "Preview is not available";
+            });
+        }
+    }
+
+    private async Task<string?> ResolveQuickLookTargetPathAsync(FileItemViewModel item)
+    {
+        if (!item.IsNextcloudItem)
+            return item.FullPath;
+
+        if (item.IsDirectory)
+            return null;
+
+        var remotePath = item.NextcloudRemotePath;
+        if (string.IsNullOrWhiteSpace(remotePath))
+            return null;
+
+        try
+        {
+            return await _nextcloud.DownloadFileToCacheAsync(remotePath);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string? ResolveQuickLookExecutablePath()
+    {
+        if (_quickLookPathResolved)
+            return _quickLookExecutablePath;
+
+        var candidates = new List<string>();
+
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrWhiteSpace(localAppData))
+            candidates.Add(Path.Combine(localAppData, "Programs", "QuickLook", "QuickLook.exe"));
+
+        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        if (!string.IsNullOrWhiteSpace(programFiles))
+            candidates.Add(Path.Combine(programFiles, "QuickLook", "QuickLook.exe"));
+
+        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+        if (!string.IsNullOrWhiteSpace(programFilesX86))
+            candidates.Add(Path.Combine(programFilesX86, "QuickLook", "QuickLook.exe"));
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                _quickLookExecutablePath = candidate;
+                _quickLookPathResolved = true;
+                return _quickLookExecutablePath;
+            }
+        }
+
+        try
+        {
+            using var whereProcess = Process.Start(new ProcessStartInfo
+            {
+                FileName = "where.exe",
+                Arguments = "QuickLook.exe",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            });
+
+            if (whereProcess is not null)
+            {
+                var line = whereProcess.StandardOutput.ReadLine();
+                whereProcess.WaitForExit(1500);
+                if (!string.IsNullOrWhiteSpace(line) && File.Exists(line.Trim()))
+                    _quickLookExecutablePath = line.Trim();
+            }
+        }
+        catch
+        {
+            // Ignore executable discovery failures.
+        }
+
+        _quickLookPathResolved = true;
+        return _quickLookExecutablePath;
+    }
+
     private void UpdateItemCountText()
     {
         var dirs = Items.Count(i => i.IsDirectory);
         var files = Items.Count - dirs;
-        ItemCountText = $"{dirs} pastas, {files} arquivos";
+        ItemCountText = FormatItemCount(dirs, files);
         if (SelectedItem is null)
             UpdateDetailsState();
+    }
+
+    private string FormatItemCount(int dirs, int files)
+    {
+        if (string.Equals(SettingsLanguage, "en_GB", StringComparison.OrdinalIgnoreCase))
+        {
+            var folderLabel = dirs == 1 ? "folder" : "folders";
+            var fileLabel = files == 1 ? "file" : "files";
+            return $"{dirs} {folderLabel}, {files} {fileLabel}";
+        }
+
+        var pastaLabel = dirs == 1 ? "pasta" : "pastas";
+        var arquivoLabel = files == 1 ? "arquivo" : "arquivos";
+        return $"{dirs} {pastaLabel}, {files} {arquivoLabel}";
     }
 
     private void BeginResolveVisibleItemIcons()
@@ -1512,11 +2513,19 @@ public partial class MainWindowViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(item.FullPath))
             return;
 
+        string queryPath = item.FullPath;
+        if (item.IsNextcloudItem)
+        {
+            queryPath = item.IsDirectory 
+                ? Environment.GetFolderPath(Environment.SpecialFolder.System) 
+                : (string.IsNullOrWhiteSpace(item.Extension) ? ".bin" : item.Extension);
+        }
+
         string? iconPath;
         await _iconResolveLimiter.WaitAsync(ct);
         try
         {
-            iconPath = await TryGetShellIconPathAsync(item.FullPath, ListIconResolveSizePx, ct, preferThumbnail: false);
+            iconPath = await TryGetShellIconPathAsync(queryPath, ListIconResolveSizePx, ct, preferThumbnail: !item.IsNextcloudItem);
         }
         catch
         {
@@ -1552,7 +2561,7 @@ public partial class MainWindowViewModel : ObservableObject
         var ct = _detailsIconCts.Token;
 
         var normalizedPath = NormalizePath(item.FullPath);
-        if (TryGetKnownLocationIconKey(normalizedPath, out var knownIconKey))
+        if (!item.IsNextcloudItem && TryGetKnownLocationIconKey(normalizedPath, out var knownIconKey))
         {
             var knownIconPath = GetHighQualityLocationIconPath(knownIconKey);
             if (!string.IsNullOrWhiteSpace(knownIconPath))
@@ -1566,11 +2575,98 @@ public partial class MainWindowViewModel : ObservableObject
             }
         }
 
+        if (IsCompressedExtension(item.Extension))
+        {
+            string compressedQueryPath;
+            if (item.IsNextcloudItem)
+                compressedQueryPath = string.IsNullOrWhiteSpace(item.Extension) ? ".zip" : item.Extension;
+            else
+                compressedQueryPath = item.FullPath;
+
+            string? compressedIconPath = null;
+            await _iconResolveLimiter.WaitAsync(ct);
+            try
+            {
+                compressedIconPath = await TryGetShellIconPathAsync(
+                    compressedQueryPath,
+                    DetailsIconResolveSizePx,
+                    ct,
+                    preferThumbnail: false);
+            }
+            catch
+            {
+                // Fallback below.
+            }
+            finally
+            {
+                _iconResolveLimiter.Release();
+            }
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!ReferenceEquals(SelectedItem, item))
+                    return;
+
+                var resolvedPath = string.IsNullOrWhiteSpace(compressedIconPath)
+                    ? NanaZipIconUri
+                    : compressedIconPath;
+
+                DetailsIconImagePath = resolvedPath;
+                DetailsIconResourceKey = "Icon.Files.App.ThemedIcons.Zip";
+
+                // Keep the Preview fallback in sync with the high-resolution archive icon.
+                PreviewFallbackImagePath = resolvedPath;
+            });
+            return;
+        }
+
+        string queryPath = item.FullPath;
+        var preferThumbnail = !item.IsDirectory;
+        if (item.IsNextcloudItem)
+        {
+            if (item.IsDirectory)
+            {
+                queryPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
+                preferThumbnail = false;
+            }
+            else
+            {
+                var remotePath = item.NextcloudRemotePath;
+                string? localPath = null;
+                if (!string.IsNullOrWhiteSpace(remotePath))
+                {
+                    try
+                    {
+                        localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, ct);
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    catch
+                    {
+                        // Fall back to extension icon below.
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
+                {
+                    queryPath = localPath;
+                    preferThumbnail = true;
+                }
+                else
+                {
+                    queryPath = string.IsNullOrWhiteSpace(item.Extension) ? ".bin" : item.Extension;
+                    preferThumbnail = false;
+                }
+            }
+        }
+
         string? iconPath;
         await _iconResolveLimiter.WaitAsync(ct);
         try
         {
-            iconPath = await TryGetShellIconPathAsync(item.FullPath, DetailsIconResolveSizePx, ct, preferThumbnail: true);
+            iconPath = await TryGetShellIconPathAsync(queryPath, DetailsIconResolveSizePx, ct, preferThumbnail: preferThumbnail);
         }
         catch
         {
@@ -1609,6 +2705,12 @@ public partial class MainWindowViewModel : ObservableObject
         var extension = Path.GetExtension(path);
         if (ShouldPreferAssociatedIcon(extension))
             return TrySaveAssociatedShellIconAsPng(path, cachePath, sizePx) ? cachePath : null;
+
+        if (preferThumbnail)
+        {
+            if (await TrySaveImageThumbnailAsPng(path, cachePath, sizePx, ct))
+                return cachePath;
+        }
 
         ThumbnailData? thumb = null;
         try
@@ -1671,6 +2773,52 @@ public partial class MainWindowViewModel : ObservableObject
         return Path.Combine(_shellIconCacheDir, $"{file}.png");
     }
 
+    private static async Task<bool> TrySaveImageThumbnailAsPng(string path, string cachePath, int sizePx, CancellationToken ct)
+    {
+        var ext = Path.GetExtension(path);
+        if (!string.Equals(ext, ".png", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(ext, ".jpg", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(ext, ".jpeg", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return await Task.Run(() =>
+        {
+            try
+            {
+                using var stream = File.OpenRead(path);
+                using var image = System.Drawing.Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
+                
+                var maxD = Math.Max(image.Width, image.Height);
+                if (maxD <= 0) return false;
+
+                double scale = (double)sizePx / maxD;
+                if (scale > 1.0) scale = 1.0;
+
+                int newW = Math.Max(1, (int)(image.Width * scale));
+                int newH = Math.Max(1, (int)(image.Height * scale));
+
+                using var thumbnail = new System.Drawing.Bitmap(newW, newH, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                using (var gfx = System.Drawing.Graphics.FromImage(thumbnail))
+                {
+                    gfx.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    gfx.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    gfx.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                    gfx.DrawImage(image, 0, 0, newW, newH);
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+                thumbnail.Save(cachePath, System.Drawing.Imaging.ImageFormat.Png);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }, ct);
+    }
+
     private static void SaveThumbnailAsPng(string filePath, ThumbnailData thumb)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
@@ -1694,12 +2842,6 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (!OperatingSystem.IsWindows())
             return false;
-
-        if ((Directory.Exists(path) || File.Exists(path)) &&
-            TrySaveShellItemImageFactoryAsPng(path, cachePath, sizePx))
-        {
-            return true;
-        }
 
         if ((TryGetSystemImageListFileIconHandle(path, sizePx, out var fileIcon) ||
              TryGetShellFileIconHandle(path, sizePx, out fileIcon)) &&
@@ -2032,7 +3174,17 @@ public partial class MainWindowViewModel : ObservableObject
     {
         CanNavigateBack = SelectedTab?.BackHistory.Count > 0;
         CanNavigateForward = SelectedTab?.ForwardHistory.Count > 0;
-        CanNavigateUp = _fileSystem.GetParentPath(CurrentPath) is not null;
+
+        if (IsVirtualNextcloudPath(CurrentPath))
+        {
+            // Can go up if not at nc root
+            var remote = GetNextcloudRemotePath(CurrentPath);
+            CanNavigateUp = !string.IsNullOrWhiteSpace(remote) && remote != "/";
+        }
+        else
+        {
+            CanNavigateUp = _fileSystem.GetParentPath(CurrentPath) is not null;
+        }
     }
 
     private void SetSelectedTab(ExplorerTabViewModel tab)
@@ -2060,6 +3212,9 @@ public partial class MainWindowViewModel : ObservableObject
         yield return SidebarHome;
         yield return SidebarNetwork;
         yield return SidebarNextcloud;
+
+        foreach (var networkLocation in SidebarNetworkLocations)
+            yield return networkLocation;
 
         foreach (var fav in SidebarFavorites)
             yield return fav;
@@ -2124,9 +3279,81 @@ public partial class MainWindowViewModel : ObservableObject
 
     private static string NormalizePath(string path)
     {
-        var fullPath = Path.GetFullPath(path);
-        return fullPath.TrimEnd(Path.AltDirectorySeparatorChar);
+        if (string.IsNullOrWhiteSpace(path))
+            return string.Empty;
+
+        if (IsVirtualNextcloudPath(path))
+            return path.Trim();
+
+        if (IsNetworkSentinelPath(path))
+            return NetworkSentinelPath;
+
+        if (IsUncPath(path))
+            return path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        try
+        {
+            var fullPath = Path.GetFullPath(path);
+            return fullPath.TrimEnd(Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            return path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
     }
+
+    private static string NormalizeNetworkShortcutPath(string rawPath)
+    {
+        if (string.IsNullOrWhiteSpace(rawPath))
+            return string.Empty;
+
+        var trimmed = rawPath.Trim();
+        if (IsVirtualNextcloudPath(trimmed) || IsNetworkSentinelPath(trimmed))
+            return string.Empty;
+
+        if (IsUncPath(trimmed))
+            return trimmed.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        try
+        {
+            return NormalizePath(trimmed);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string BuildNetworkLocationLabel(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return "Network";
+
+        if (IsUncPath(path))
+        {
+            var segments = path.Trim('\\').Split('\\', StringSplitOptions.RemoveEmptyEntries);
+            if (segments.Length >= 2)
+                return segments[1];
+            if (segments.Length == 1)
+                return segments[0];
+            return "Network";
+        }
+
+        var name = Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? path : name;
+    }
+
+    private void SortSidebarNetworkLocations()
+    {
+        SidebarNetworkLocations = new ObservableCollection<SidebarItemViewModel>(
+            SidebarNetworkLocations.OrderBy(item => item.Label, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static bool IsNetworkSentinelPath(string path)
+        => string.Equals(path, NetworkSentinelPath, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsUncPath(string path)
+        => !string.IsNullOrWhiteSpace(path) && path.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase);
 
     private static bool PathsEqual(string left, string right) =>
         string.Equals(
@@ -2179,10 +3406,72 @@ public partial class MainWindowViewModel : ObservableObject
         return !string.IsNullOrWhiteSpace(folderPath) && PathsEqual(normalizedPath, NormalizePath(folderPath));
     }
 
+    /// <summary>
+    /// Returns true when the path is a virtual Nextcloud <c>nc://</c> path.
+    /// </summary>
+    private static bool IsVirtualNextcloudPath(string path)
+        => !string.IsNullOrWhiteSpace(path) && path.StartsWith("nc://", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Extracts the WebDAV-relative remote path from a virtual <c>nc://</c> path.
+    /// e.g. "nc:///Documents/file.txt" → "/Documents/file.txt"
+    /// </summary>
+    private static string GetNextcloudRemotePath(string ncPath)
+    {
+        var remote = ncPath[5..]; // strip "nc://"
+        if (string.IsNullOrWhiteSpace(remote)) return "/";
+        return remote.StartsWith('/') ? remote : "/" + remote;
+    }
+
+    /// <summary>
+    /// Converts a WebDAV href (returned by PROPFIND) back to a virtual nc:// path.
+    /// The href typically looks like: /remote.php/webdav/Documents/file.txt
+    /// </summary>
+    private static string ConvertWebDavHrefToNcPath(string href)
+    {
+        if (string.IsNullOrWhiteSpace(href))
+            return "nc:///";
+
+        var normalized = Uri.UnescapeDataString(href).Replace('\\', '/').Trim();
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out var absoluteUri))
+            normalized = absoluteUri.AbsolutePath;
+
+        const string webDavPrefix = "/remote.php/webdav/";
+        const string davFilesPrefix = "/remote.php/dav/files/";
+        string relativePath;
+
+        var webDavIdx = normalized.IndexOf(webDavPrefix, StringComparison.OrdinalIgnoreCase);
+        if (webDavIdx >= 0)
+        {
+            relativePath = normalized[(webDavIdx + webDavPrefix.Length)..];
+        }
+        else
+        {
+            var davFilesIdx = normalized.IndexOf(davFilesPrefix, StringComparison.OrdinalIgnoreCase);
+            if (davFilesIdx >= 0)
+            {
+                var afterPrefix = normalized[(davFilesIdx + davFilesPrefix.Length)..];
+                var slashIndex = afterPrefix.IndexOf('/');
+                relativePath = slashIndex >= 0 ? afterPrefix[(slashIndex + 1)..] : string.Empty;
+            }
+            else
+            {
+                relativePath = normalized;
+            }
+        }
+
+        relativePath = relativePath.TrimStart('/');
+        return string.IsNullOrWhiteSpace(relativePath) ? "nc:///" : "nc:///" + relativePath;
+    }
+
     private static bool IsNextcloudPath(string normalizedPath)
     {
         if (string.IsNullOrWhiteSpace(normalizedPath))
             return false;
+
+        // Check virtual nc:// paths first
+        if (IsVirtualNextcloudPath(normalizedPath))
+            return true;
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!string.IsNullOrWhiteSpace(userProfile))
@@ -2234,7 +3523,7 @@ public partial class MainWindowViewModel : ObservableObject
             return true;
         }
 
-        if (normalizedPath.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase))
+        if (IsNetworkSentinelPath(normalizedPath))
         {
             title = "Network";
             return true;
@@ -2464,6 +3753,8 @@ public partial class MainWindowViewModel : ObservableObject
         var normalized = extension?.Trim().ToLowerInvariant();
         return normalized is ".zip" or ".rar" or ".7z" or ".tar" or ".gz" or ".bz2" or ".xz" or ".zst" or ".cab" or ".iso";
     }
+
+    private sealed record SettingsActionDefinition(string Title, string CommandName, string Shortcut);
 }
 
 /// <summary>
@@ -2508,4 +3799,23 @@ public partial class ExplorerTabViewModel : ObservableObject
     }
 
     partial void OnIconImagePathChanged(string? value) => OnPropertyChanged(nameof(HasImageIcon));
+}
+
+public sealed class SettingsActionItemViewModel
+{
+    public string Title { get; }
+    public string CommandName { get; }
+    public string Shortcut { get; }
+    public IReadOnlyList<string> ShortcutTokens { get; }
+
+    public SettingsActionItemViewModel(string title, string commandName, string shortcut)
+    {
+        Title = title;
+        CommandName = commandName;
+        Shortcut = shortcut;
+
+        ShortcutTokens = string.IsNullOrWhiteSpace(shortcut)
+            ? ["Not set"]
+            : shortcut.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+    }
 }
