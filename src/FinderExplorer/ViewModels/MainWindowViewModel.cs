@@ -44,6 +44,7 @@ public partial class MainWindowViewModel : ObservableObject
     private CancellationTokenSource? _previewCts;
     private readonly SemaphoreSlim _iconResolveLimiter = new(8);
     private readonly string _shellIconCacheDir;
+    private readonly Dictionary<string, bool> _nativePreviewSupportByExtension = new(StringComparer.OrdinalIgnoreCase);
     private bool _suppressSettingsSync;
     private readonly List<string> _clipboardPaths = [];
     private string? _quickLookExecutablePath;
@@ -260,7 +261,7 @@ public partial class MainWindowViewModel : ObservableObject
     private ExplorerLayoutMode _activeLayoutMode = ExplorerLayoutMode.Details;
 
     [ObservableProperty]
-    private GridLength _nameColumnWidth = new(1, GridUnitType.Star);
+    private GridLength _nameColumnWidth = new(360);
 
     [ObservableProperty]
     private GridLength _dateModifiedColumnWidth = new(190);
@@ -311,6 +312,24 @@ public partial class MainWindowViewModel : ObservableObject
     private string? _previewFallbackImagePath;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ImagePreviewZoomInCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImagePreviewZoomOutCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImagePreviewZoomResetCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImagePreviewFitCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImagePreviewRotateLeftCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImagePreviewRotateRightCommand))]
+    private string? _imagePreviewFilePath;
+
+    [ObservableProperty]
+    private string? _mediaPreviewFilePath;
+
+    [ObservableProperty]
+    private double _imagePreviewZoom = 1.0;
+
+    [ObservableProperty]
+    private int _imagePreviewRotation;
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NavigateBackCommand))]
     private bool _canNavigateBack;
 
@@ -327,6 +346,7 @@ public partial class MainWindowViewModel : ObservableObject
     private const int ListIconResolveSizePx = 32;
     private const int DetailsIconResolveSizePx = 256;
     private const int WindowsFolderIconResolveSizePx = 256;
+    private const int PreviewRasterResolveSizePx = 1024;
 
     private static readonly HashSet<string> IconOnlyExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -334,6 +354,19 @@ public partial class MainWindowViewModel : ObservableObject
         ".msi", ".msp", ".msu", ".cab", ".cat", ".inf", ".reg",
         ".lnk", ".url", ".com", ".bat", ".cmd", ".ps1", ".vbs", ".js",
         ".iso", ".img", ".vhd", ".vhdx"
+    };
+
+    private static readonly HashSet<string> ImagePreviewExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".gif", ".webp",
+        ".tif", ".tiff", ".ico", ".cur", ".avif", ".heic", ".heif",
+        ".svg", ".svgz", ".jxl", ".jxr", ".jp2", ".j2k"
+    };
+
+    private static readonly HashSet<string> MediaPreviewExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".webm", ".m4v", ".mpeg", ".mpg", ".3gp",
+        ".mp3", ".flac", ".wav", ".ogg", ".aac", ".m4a", ".wma", ".aiff", ".mid", ".midi"
     };
 
     private enum ClipboardOperation
@@ -379,7 +412,7 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsSettingsAdvancedSection => string.Equals(SettingsSection, "advanced", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsCloudSection => string.Equals(SettingsSection, "cloud", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsAboutSection => string.Equals(SettingsSection, "about", StringComparison.OrdinalIgnoreCase);
-    public double DetailsPaneMinWidth => IsDetailsPaneVisible ? 260 : 0;
+    public double DetailsPaneMinWidth => IsDetailsPaneVisible ? 220 : 0;
     public bool IsNcSetupStepOverview => NcSetupStep == 0;
     public bool IsNcSetupStepUrl => NcSetupStep == 1;
     public bool IsNcSetupStepCredentials => NcSetupStep == 2;
@@ -460,7 +493,11 @@ public partial class MainWindowViewModel : ObservableObject
 
     public bool DetailsHasImageIcon => !string.IsNullOrWhiteSpace(DetailsIconImagePath);
     public bool HasPreviewFallbackImage => !string.IsNullOrWhiteSpace(PreviewFallbackImagePath);
-    public bool ShowPreviewStatusText => !IsPreviewAvailable && !HasPreviewFallbackImage;
+    public bool IsImagePreviewAvailable => !string.IsNullOrWhiteSpace(ImagePreviewFilePath);
+    public bool IsMediaPreviewAvailable => !string.IsNullOrWhiteSpace(MediaPreviewFilePath);
+    public string ImagePreviewZoomText => $"{(int)Math.Round(ImagePreviewZoom * 100)}%";
+    public bool ShowPreviewStatusText => !IsPreviewAvailable && !HasPreviewFallbackImage && !IsImagePreviewAvailable && !IsMediaPreviewAvailable;
+    public bool IsNativePreviewEnabled => SettingsUseGpuAcceleration;
 
     partial void OnDetailsIconImagePathChanged(string? value) => OnPropertyChanged(nameof(DetailsHasImageIcon));
     partial void OnPreviewFallbackImagePathChanged(string? value)
@@ -471,6 +508,30 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnIsPreviewAvailableChanged(bool value)
         => OnPropertyChanged(nameof(ShowPreviewStatusText));
+
+    partial void OnImagePreviewFilePathChanged(string? value)
+    {
+        OnPropertyChanged(nameof(IsImagePreviewAvailable));
+        OnPropertyChanged(nameof(ShowPreviewStatusText));
+    }
+
+    partial void OnMediaPreviewFilePathChanged(string? value)
+    {
+        OnPropertyChanged(nameof(IsMediaPreviewAvailable));
+        OnPropertyChanged(nameof(ShowPreviewStatusText));
+    }
+
+    partial void OnImagePreviewZoomChanged(double value)
+    {
+        var clamped = Math.Clamp(value, 0.1, 8.0);
+        if (Math.Abs(clamped - value) > 0.0001)
+        {
+            ImagePreviewZoom = clamped;
+            return;
+        }
+
+        OnPropertyChanged(nameof(ImagePreviewZoomText));
+    }
 
     partial void OnActiveSortFieldChanged(SortField value)
     {
@@ -538,7 +599,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (value)
         {
             if (DetailsPaneWidth <= 0)
-                DetailsPaneWidth = 320;
+                DetailsPaneWidth = 360;
 
             DetailsSplitterWidth = 5;
         }
@@ -645,7 +706,11 @@ public partial class MainWindowViewModel : ObservableObject
             return;
 
         _settingsService.Current.UseGpuThumbnails = value;
+        _settingsService.Current.UseGpuPreview = value;
         _thumbnailService.InvalidateAll();
+        OnPropertyChanged(nameof(IsNativePreviewEnabled));
+        UpdatePreviewState();
+        _ = ResolveSelectedItemPreviewAsync(SelectedItem);
         _ = SaveSettingsAsync();
     }
 
@@ -712,10 +777,13 @@ public partial class MainWindowViewModel : ObservableObject
             SettingsShowDetailsPane = settings.ShowDetailsPane;
             SettingsShowHiddenFiles = settings.ShowHiddenFiles;
             SettingsUseEverythingSearch = settings.UseEverythingSearch;
-            SettingsUseGpuAcceleration = settings.UseGpuThumbnails;
+            var gpuAccelerationEnabled = settings.UseGpuThumbnails || settings.UseGpuPreview;
+            SettingsUseGpuAcceleration = gpuAccelerationEnabled;
             SettingsConfirmBeforeDelete = settings.ConfirmBeforeDelete;
             SettingsDefaultFileManager = settings.IsDefaultFileManager || _defaultFileManagerService.IsRegistered;
             SettingsLanguage = NormalizeLanguageCode(settings.LanguageCode);
+            settings.UseGpuThumbnails = gpuAccelerationEnabled;
+            settings.UseGpuPreview = gpuAccelerationEnabled;
             settings.RunAtStartup = SettingsRunAtStartup;
             settings.IsDefaultFileManager = SettingsDefaultFileManager;
         }
@@ -785,6 +853,7 @@ public partial class MainWindowViewModel : ObservableObject
         _settingsService.Current.MinimizeToTray = SettingsRunInBackground;
         _settingsService.Current.UseEverythingSearch = SettingsUseEverythingSearch;
         _settingsService.Current.UseGpuThumbnails = SettingsUseGpuAcceleration;
+        _settingsService.Current.UseGpuPreview = SettingsUseGpuAcceleration;
         _settingsService.Current.ConfirmBeforeDelete = SettingsConfirmBeforeDelete;
         _settingsService.Current.IsDefaultFileManager = SettingsDefaultFileManager;
         _settingsService.Current.LanguageCode = NormalizeLanguageCode(SettingsLanguage);
@@ -811,17 +880,47 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void InitializeSidebar()
     {
-        var sidebarItems = _fileSystem.GetSidebarItems();
+        // Fast local placeholders so startup never blocks on drive/network probes.
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        SidebarFavorites = new ObservableCollection<SidebarItemViewModel>
+        {
+            new("Desktop", Path.Combine(userProfile, "Desktop"), GetSidebarIconUri("desktop")),
+            new("Documents", Path.Combine(userProfile, "Documents"), GetSidebarIconUri("documents")),
+            new("Downloads", Path.Combine(userProfile, "Downloads"), GetSidebarIconUri("downloads")),
+            new("Pictures", Path.Combine(userProfile, "Pictures"), GetSidebarIconUri("pictures")),
+            new("Music", Path.Combine(userProfile, "Music"), GetSidebarIconUri("music")),
+            new("Videos", Path.Combine(userProfile, "Videos"), GetSidebarIconUri("videos"))
+        };
+        SidebarVolumes = [];
 
-        SidebarFavorites = new ObservableCollection<SidebarItemViewModel>(
-            sidebarItems
+        _ = Task.Run(() =>
+        {
+            IReadOnlyList<SidebarItem> sidebarItems;
+            try
+            {
+                sidebarItems = _fileSystem.GetSidebarItems();
+            }
+            catch
+            {
+                return;
+            }
+
+            var favorites = sidebarItems
                 .Where(i => i.Section == Core.Models.SidebarSection.Favorites)
-                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIconUri(i.IconKey))));
+                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIconUri(i.IconKey)))
+                .ToList();
 
-        SidebarVolumes = new ObservableCollection<SidebarItemViewModel>(
-            sidebarItems
+            var volumes = sidebarItems
                 .Where(i => i.Section == Core.Models.SidebarSection.Volumes)
-                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIconUri(i.IconKey))));
+                .Select(i => new SidebarItemViewModel(i.Label, i.Path, GetSidebarIconUri(i.IconKey)))
+                .ToList();
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                SidebarFavorites = new ObservableCollection<SidebarItemViewModel>(favorites);
+                SidebarVolumes = new ObservableCollection<SidebarItemViewModel>(volumes);
+            }, DispatcherPriority.Background);
+        });
     }
 
     private void InitializeNetworkLocations()
@@ -1617,6 +1716,44 @@ public partial class MainWindowViewModel : ObservableObject
         IsPreviewTabSelected = true;
     }
 
+    private bool CanAdjustImagePreview => IsImagePreviewAvailable;
+
+    [RelayCommand(CanExecute = nameof(CanAdjustImagePreview))]
+    private void ImagePreviewZoomIn()
+    {
+        ImagePreviewZoom = Math.Min(8.0, ImagePreviewZoom + 0.25);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAdjustImagePreview))]
+    private void ImagePreviewZoomOut()
+    {
+        ImagePreviewZoom = Math.Max(0.1, ImagePreviewZoom - 0.25);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAdjustImagePreview))]
+    private void ImagePreviewZoomReset()
+    {
+        ImagePreviewZoom = 1.0;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAdjustImagePreview))]
+    private void ImagePreviewFit()
+    {
+        ImagePreviewZoom = 1.0;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAdjustImagePreview))]
+    private void ImagePreviewRotateLeft()
+    {
+        ImagePreviewRotation = NormalizeRotationAngle(ImagePreviewRotation - 90);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAdjustImagePreview))]
+    private void ImagePreviewRotateRight()
+    {
+        ImagePreviewRotation = NormalizeRotationAngle(ImagePreviewRotation + 90);
+    }
+
     [RelayCommand]
     private void ShowProperties()
     {
@@ -2260,80 +2397,111 @@ public partial class MainWindowViewModel : ObservableObject
     private void UpdatePreviewState()
     {
         _previewCts?.Cancel();
+        PreviewFilePath = null;
+        IsPreviewAvailable = false;
         PreviewFallbackImagePath = null;
+        ImagePreviewFilePath = null;
+        MediaPreviewFilePath = null;
+        ImagePreviewZoom = 1.0;
+        ImagePreviewRotation = 0;
 
         if (SelectedItem is null)
         {
-            PreviewFilePath = null;
-            IsPreviewAvailable = false;
             PreviewStatusText = "Select a file to preview";
             return;
         }
 
         if (SelectedItem.IsDirectory)
         {
-            PreviewFilePath = null;
-            IsPreviewAvailable = false;
-            PreviewStatusText = "Preview is not available for folders. Press Space for QuickLook.";
+            PreviewStatusText = "Preview is not available for folders.";
             return;
         }
 
         var extension = SelectedItem.Extension.ToLowerInvariant();
         if (IsCompressedExtension(extension))
         {
-            PreviewFilePath = null;
-            IsPreviewAvailable = false;
-            PreviewFallbackImagePath = string.IsNullOrWhiteSpace(DetailsIconImagePath)
-                ? NanaZipIconUri
-                : DetailsIconImagePath;
-            PreviewStatusText = string.Empty;
+            EnableRasterPreview(string.IsNullOrWhiteSpace(DetailsIconImagePath) ? NanaZipIconUri : DetailsIconImagePath);
             return;
         }
 
         if (SelectedItem.IsNextcloudItem)
         {
-            PreviewFilePath = null;
-            IsPreviewAvailable = false;
             PreviewStatusText = "Loading preview...";
             return;
         }
 
         if (!File.Exists(SelectedItem.FullPath))
         {
-            PreviewFilePath = null;
-            IsPreviewAvailable = false;
             PreviewStatusText = "Preview is not available";
             return;
         }
 
-        if (extension is ".exe" or ".dll" or ".sys" or ".bin")
+        if (TryEnableImagePreview(SelectedItem.FullPath))
+            return;
+
+        if (TryEnableMediaPreview(SelectedItem.FullPath))
+            return;
+
+        if (IsNativePreviewEnabled && CanUseNativePreview(SelectedItem.FullPath))
         {
-            PreviewFilePath = null;
-            IsPreviewAvailable = false;
-            PreviewStatusText = "Preview is not available for this file type. Press Space for QuickLook.";
+            PreviewFilePath = SelectedItem.FullPath;
+            IsPreviewAvailable = true;
+            MediaPreviewFilePath = null;
+            PreviewStatusText = string.Empty;
             return;
         }
 
-        PreviewFilePath = SelectedItem.FullPath;
-        IsPreviewAvailable = true;
-        PreviewStatusText = string.Empty;
+        PreviewStatusText = "Loading preview...";
     }
 
     private async Task ResolveSelectedItemPreviewAsync(FileItemViewModel? item)
     {
-        if (item is null || item.IsDirectory || !item.IsNextcloudItem || IsCompressedExtension(item.Extension))
+        if (item is null || item.IsDirectory || IsCompressedExtension(item.Extension))
             return;
 
+        _previewCts?.Cancel();
         _previewCts = new CancellationTokenSource();
         var ct = _previewCts.Token;
 
         try
         {
-            var remotePath = item.NextcloudRemotePath;
-            if (string.IsNullOrWhiteSpace(remotePath))
+            string? localPath;
+            if (item.IsNextcloudItem)
+            {
+                var remotePath = item.NextcloudRemotePath;
+                if (string.IsNullOrWhiteSpace(remotePath))
+                    return;
+
+                localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, ct);
+            }
+            else
+            {
+                localPath = item.FullPath;
+            }
+
+            if (ct.IsCancellationRequested)
                 return;
 
-            var localPath = await _nextcloud.DownloadFileToCacheAsync(remotePath, ct);
+            if (string.IsNullOrWhiteSpace(localPath) || !File.Exists(localPath))
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!ReferenceEquals(SelectedItem, item))
+                        return;
+
+                    PreviewFilePath = null;
+                    IsPreviewAvailable = false;
+                    PreviewStatusText = "Preview is not available";
+                });
+
+                return;
+            }
+
+            string? rasterPreviewPath = null;
+            var canUseNative = IsNativePreviewEnabled && CanUseNativePreview(localPath);
+            if (!canUseNative)
+                rasterPreviewPath = await TryGetShellIconPathAsync(localPath, PreviewRasterResolveSizePx, ct, preferThumbnail: true);
+
             if (ct.IsCancellationRequested)
                 return;
 
@@ -2342,17 +2510,36 @@ public partial class MainWindowViewModel : ObservableObject
                 if (!ReferenceEquals(SelectedItem, item))
                     return;
 
-                if (!string.IsNullOrWhiteSpace(localPath) && File.Exists(localPath))
+                if (TryEnableImagePreview(localPath))
+                    return;
+
+                if (TryEnableMediaPreview(localPath))
+                    return;
+
+                if (canUseNative)
                 {
                     PreviewFilePath = localPath;
                     IsPreviewAvailable = true;
+                    PreviewFallbackImagePath = null;
+                    ImagePreviewFilePath = null;
+                    MediaPreviewFilePath = null;
                     PreviewStatusText = string.Empty;
+                }
+                else if (!string.IsNullOrWhiteSpace(rasterPreviewPath))
+                {
+                    EnableRasterPreview(rasterPreviewPath);
+                }
+                else if (!string.IsNullOrWhiteSpace(DetailsIconImagePath))
+                {
+                    EnableRasterPreview(DetailsIconImagePath);
                 }
                 else
                 {
                     PreviewFilePath = null;
                     IsPreviewAvailable = false;
-                    PreviewStatusText = "Preview is not available";
+                    PreviewFallbackImagePath = null;
+                    ImagePreviewFilePath = null;
+                    PreviewStatusText = "Preview is not available for this file type.";
                 }
             });
         }
@@ -2370,6 +2557,7 @@ public partial class MainWindowViewModel : ObservableObject
                 PreviewFilePath = null;
                 IsPreviewAvailable = false;
                 PreviewStatusText = "Preview is not available";
+                MediaPreviewFilePath = null;
             });
         }
     }
@@ -2451,6 +2639,136 @@ public partial class MainWindowViewModel : ObservableObject
 
         _quickLookPathResolved = true;
         return _quickLookExecutablePath;
+    }
+
+    private bool TryEnableImagePreview(string path)
+    {
+        if (!IsImagePreviewExtension(path) || !File.Exists(path))
+            return false;
+
+        EnableRasterPreview(path, GetInitialImagePreviewRotation(path));
+        return true;
+    }
+
+    private bool TryEnableMediaPreview(string path)
+    {
+        if (!IsMediaPreviewExtension(path) || !File.Exists(path))
+            return false;
+
+        EnableMediaPreview(path);
+        return true;
+    }
+
+    private void EnableRasterPreview(string imagePath, int rotation = 0)
+    {
+        PreviewFilePath = null;
+        IsPreviewAvailable = false;
+        PreviewFallbackImagePath = null;
+        ImagePreviewFilePath = imagePath;
+        MediaPreviewFilePath = null;
+        ImagePreviewZoom = 1.0;
+        ImagePreviewRotation = NormalizeRotationAngle(rotation);
+        PreviewStatusText = string.Empty;
+    }
+
+    private void EnableMediaPreview(string mediaPath)
+    {
+        PreviewFilePath = null;
+        IsPreviewAvailable = false;
+        PreviewFallbackImagePath = null;
+        ImagePreviewFilePath = null;
+        MediaPreviewFilePath = mediaPath;
+        ImagePreviewZoom = 1.0;
+        ImagePreviewRotation = 0;
+        PreviewStatusText = string.Empty;
+    }
+
+    private static bool IsImagePreviewExtension(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return !string.IsNullOrWhiteSpace(extension) && ImagePreviewExtensions.Contains(extension);
+    }
+
+    private static bool IsMediaPreviewExtension(string path)
+    {
+        var extension = Path.GetExtension(path);
+        return !string.IsNullOrWhiteSpace(extension) && MediaPreviewExtensions.Contains(extension);
+    }
+
+    private static int GetInitialImagePreviewRotation(string path)
+    {
+        if (!OperatingSystem.IsWindows())
+            return 0;
+
+        try
+        {
+            using var image = System.Drawing.Image.FromFile(path);
+            const int ExifOrientationId = 0x0112;
+            if (Array.IndexOf(image.PropertyIdList, ExifOrientationId) < 0)
+                return 0;
+
+            var propertyItem = image.GetPropertyItem(ExifOrientationId);
+            if (propertyItem is null || propertyItem.Value is null || propertyItem.Value.Length < 2)
+                return 0;
+
+            var orientation = BitConverter.ToUInt16(propertyItem.Value, 0);
+            return orientation switch
+            {
+                3 => 180,
+                6 => 90,
+                8 => 270,
+                _ => 0
+            };
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static int NormalizeRotationAngle(int angle)
+    {
+        var normalized = angle % 360;
+        if (normalized < 0)
+            normalized += 360;
+
+        return normalized;
+    }
+
+    private bool CanUseNativePreview(string path)
+    {
+        if (!OperatingSystem.IsWindows() || string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        var extension = Path.GetExtension(path);
+        if (!string.IsNullOrWhiteSpace(extension) &&
+            _nativePreviewSupportByExtension.TryGetValue(extension, out var cachedSupport))
+        {
+            return cachedSupport;
+        }
+
+        bool isSupported;
+        try
+        {
+            isSupported = NativeBridge.Preview_CanHandle(path) == 1;
+        }
+        catch (DllNotFoundException)
+        {
+            isSupported = false;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            isSupported = false;
+        }
+        catch
+        {
+            isSupported = false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(extension))
+            _nativePreviewSupportByExtension[extension] = isSupported;
+
+        return isSupported;
     }
 
     private void UpdateItemCountText()

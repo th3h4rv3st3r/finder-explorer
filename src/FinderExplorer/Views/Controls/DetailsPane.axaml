@@ -3,6 +3,7 @@
              xmlns:vm="using:FinderExplorer.ViewModels"
              xmlns:conv="using:FinderExplorer.Converters"
              xmlns:native="using:FinderExplorer.Controls"
+             xmlns:vlc="using:LibVLCSharp.Avalonia"
              x:Class="FinderExplorer.Views.Controls.DetailsPane"
              x:DataType="vm:MainWindowViewModel">
 
@@ -14,10 +15,10 @@
     <Border Margin="8"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
-            Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
-            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="8">
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            CornerRadius="0">
         <Grid RowDefinitions="Auto,*">
             <Border Grid.Row="0"
                     HorizontalAlignment="Center"
@@ -105,11 +106,41 @@
             <Grid Grid.Row="1"
                   IsVisible="{CompiledBinding IsPreviewTabSelected}"
                   Margin="12,6,12,12"
-                  RowDefinitions="*,Auto">
+                  RowDefinitions="*,Auto,Auto">
                 <Border Grid.Row="0"
                         Classes="preview-host-shell"
                         IsVisible="{CompiledBinding IsPreviewAvailable}">
-                    <native:NativePreviewControl FilePath="{CompiledBinding PreviewFilePath}" />
+                    <native:NativePreviewControl FilePath="{CompiledBinding PreviewFilePath}"
+                                                 IsPreviewEnabled="{CompiledBinding IsNativePreviewEnabled}" />
+                </Border>
+
+                <Border Grid.Row="0"
+                        Classes="preview-host-shell preview-host-image"
+                        Padding="12"
+                        IsVisible="{CompiledBinding IsImagePreviewAvailable}">
+                    <ScrollViewer x:Name="ImagePreviewScrollViewer"
+                                  Classes="preview-scroll"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  SizeChanged="ImagePreviewScrollViewer_OnSizeChanged"
+                                  PointerWheelChanged="ImagePreviewScrollViewer_OnPointerWheelChanged">
+                        <Canvas x:Name="ImagePreviewCanvas"
+                                Classes="preview-canvas">
+                            <Image x:Name="ImagePreviewImage"
+                                   Source="{CompiledBinding ImagePreviewFilePath, Converter={StaticResource UriToBitmap}}"
+                                   Stretch="Fill"
+                                   RenderOptions.BitmapInterpolationMode="HighQuality"
+                                   RenderTransformOrigin="0,0" />
+                        </Canvas>
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Row="0"
+                        Classes="preview-host-shell preview-host-media"
+                        IsVisible="{CompiledBinding IsMediaPreviewAvailable}">
+                    <vlc:VideoView x:Name="MediaPreviewVideoView"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch" />
                 </Border>
 
                 <Border Grid.Row="0"
@@ -120,10 +151,102 @@
                            HorizontalAlignment="Stretch"
                            VerticalAlignment="Center"
                            Stretch="Uniform"
+                           StretchDirection="DownOnly"
                            RenderOptions.BitmapInterpolationMode="HighQuality" />
                 </Border>
 
-                <TextBlock Grid.Row="1"
+                <Border Grid.Row="1"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,8"
+                        Padding="6,4"
+                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        IsVisible="{CompiledBinding IsImagePreviewAvailable}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Classes="toolbar-btn"
+                                Width="30"
+                                Height="26"
+                                Command="{CompiledBinding ImagePreviewZoomOutCommand}"
+                                Content="-" />
+                        <Button Classes="toolbar-btn"
+                                MinWidth="56"
+                                Height="26"
+                                Command="{CompiledBinding ImagePreviewFitCommand}"
+                                Content="Fit" />
+                        <Button Classes="toolbar-btn"
+                                MinWidth="56"
+                                Height="26"
+                                Command="{CompiledBinding ImagePreviewZoomResetCommand}"
+                                Content="{CompiledBinding ImagePreviewZoomText}" />
+                        <Button Classes="toolbar-btn"
+                                Width="30"
+                                Height="26"
+                                Command="{CompiledBinding ImagePreviewZoomInCommand}"
+                                Content="+" />
+                        <Button Classes="toolbar-btn"
+                                MinWidth="44"
+                                Height="26"
+                                Command="{CompiledBinding ImagePreviewRotateLeftCommand}"
+                                Content="L" />
+                        <Button Classes="toolbar-btn"
+                                MinWidth="44"
+                                Height="26"
+                                Command="{CompiledBinding ImagePreviewRotateRightCommand}"
+                                Content="R" />
+                        <Button Classes="toolbar-btn"
+                                Width="30"
+                                Height="26"
+                                Click="PanLeft_Click"
+                                Content="←" />
+                        <Button Classes="toolbar-btn"
+                                Width="30"
+                                Height="26"
+                                Click="PanUp_Click"
+                                Content="↑" />
+                        <Button Classes="toolbar-btn"
+                                Width="30"
+                                Height="26"
+                                Click="PanDown_Click"
+                                Content="↓" />
+                        <Button Classes="toolbar-btn"
+                                Width="30"
+                                Height="26"
+                                Click="PanRight_Click"
+                                Content="→" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,8"
+                        Padding="6,4"
+                        Background="{DynamicResource SubtleFillColorTertiaryBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        IsVisible="{CompiledBinding IsMediaPreviewAvailable}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Classes="toolbar-btn"
+                                MinWidth="56"
+                                Height="26"
+                                Click="MediaPlayPause_Click"
+                                Content="Play/Pause" />
+                        <Button Classes="toolbar-btn"
+                                MinWidth="56"
+                                Height="26"
+                                Click="MediaStop_Click"
+                                Content="Stop" />
+                        <Button Classes="toolbar-btn"
+                                MinWidth="56"
+                                Height="26"
+                                Click="MediaMute_Click"
+                                Content="Mute" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Grid.Row="2"
                            Text="{CompiledBinding PreviewStatusText}"
                            Margin="0,10,0,0"
                            HorizontalAlignment="Center"
