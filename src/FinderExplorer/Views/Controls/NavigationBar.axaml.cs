@@ -1,10 +1,12 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
 using FinderExplorer.ViewModels;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace FinderExplorer.Views.Controls;
 
@@ -160,6 +162,81 @@ public partial class NavigationBar : UserControl
         return false;
     }
 
+    private void BreadcrumbChevronButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (sender is not Control control || control.DataContext is not BreadcrumbSegmentViewModel segment)
+            return;
+
+        var menu = new ContextMenu
+        {
+            Placement = PlacementMode.Bottom,
+            ItemsSource = BuildBreadcrumbChildMenuItems(segment.FullPath)
+        };
+
+        menu.Open(control);
+        e.Handled = true;
+    }
+
+    private List<MenuItem> BuildBreadcrumbChildMenuItems(string basePath)
+    {
+        var items = new List<MenuItem>();
+
+        try
+        {
+            var children = Directory
+                .EnumerateDirectories(basePath)
+                .Select(path => new { Path = path, Label = GetPathLabel(path) })
+                .OrderBy(item => item.Label, StringComparer.CurrentCultureIgnoreCase)
+                .Take(50)
+                .ToList();
+
+            foreach (var child in children)
+            {
+                var menuItem = new MenuItem { Header = child.Label };
+                ToolTip.SetTip(menuItem, child.Path);
+                menuItem.Click += (_, _) => NavigateToBreadcrumbPath(child.Path);
+                items.Add(menuItem);
+            }
+
+            if (items.Count == 0)
+                items.Add(new MenuItem { Header = "No folders", IsEnabled = false });
+        }
+        catch
+        {
+            items.Add(new MenuItem { Header = "Cannot access", IsEnabled = false });
+        }
+
+        return items;
+    }
+
+    private void NavigateToBreadcrumbPath(string path)
+    {
+        if (DataContext is not MainWindowViewModel vm || string.IsNullOrWhiteSpace(path))
+            return;
+
+        vm.BreadcrumbNavigateCommand.Execute(
+            new BreadcrumbSegmentViewModel(
+                GetPathLabel(path),
+                path,
+                showSeparator: false,
+                showChevronButton: false));
+    }
+
+    private static string GetPathLabel(string path)
+    {
+        var root = Path.GetPathRoot(path);
+        if (!string.IsNullOrWhiteSpace(root))
+        {
+            var trimmedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var trimmedRoot = root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (string.Equals(trimmedPath, trimmedRoot, StringComparison.OrdinalIgnoreCase))
+                return root.TrimEnd(Path.DirectorySeparatorChar);
+        }
+
+        var name = Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? path : name;
+    }
+
     private void SetMode(OmnibarMode mode)
     {
         _currentMode = mode;
@@ -174,22 +251,22 @@ public partial class NavigationBar : UserControl
         SetIconResource(
             CommandPaletteToggleIcon,
             mode == OmnibarMode.CommandPalette
-                ? "CommandPaletteFilledGeometry"
-                : "CommandPaletteGeometry");
+                ? "Icon.Files.App.ThemedIcons.Omnibar.Commands.Filled"
+                : "Icon.Files.App.ThemedIcons.Omnibar.Commands");
 
         SetIconResource(
             SearchToggleIcon,
             mode == OmnibarMode.Search
-                ? "SearchFilledGeometry"
-                : "SearchGeometry");
+                ? "Icon.Files.App.ThemedIcons.Omnibar.Search.Filled"
+                : "Icon.Files.App.ThemedIcons.Omnibar.Search");
 
         SetIconResource(
             CommandPaletteModeGlyph,
-            "CommandPaletteGeometry");
+            "Icon.Files.App.ThemedIcons.Omnibar.Commands");
 
         SetIconResource(
             SearchModeGlyph,
-            "SearchGeometry");
+            "Icon.Files.App.ThemedIcons.Omnibar.Search");
     }
 
     private static void SetClass(Control control, string className, bool enabled)
@@ -212,7 +289,7 @@ public partial class NavigationBar : UserControl
         Search
     }
 
-    private void SetIconResource(Path icon, string key)
+    private void SetIconResource(PathIcon icon, string key)
     {
         if (this.TryFindResource(key, out var localValue) && localValue is Geometry localGeometry)
         {
@@ -222,6 +299,40 @@ public partial class NavigationBar : UserControl
 
         if (Application.Current?.TryFindResource(key, out var globalValue) == true &&
             globalValue is Geometry globalGeometry)
+        {
             icon.Data = globalGeometry;
+            return;
+        }
+
+        if (Application.Current?.TryFindResource("Icon.CommandPalette", out var commandFallback) == true &&
+            key.Contains("Commands", StringComparison.OrdinalIgnoreCase) &&
+            commandFallback is Geometry commandGeometry)
+        {
+            icon.Data = commandGeometry;
+            return;
+        }
+
+        if (Application.Current?.TryFindResource("Icon.Search", out var searchFallback) == true &&
+            key.Contains("Search", StringComparison.OrdinalIgnoreCase) &&
+            searchFallback is Geometry searchGeometry)
+        {
+            icon.Data = searchGeometry;
+            return;
+        }
+
+        if (Application.Current?.TryFindResource("Icon.StatusCenter", out var statusFallback) == true &&
+            key.Contains("StatusCenter", StringComparison.OrdinalIgnoreCase) &&
+            statusFallback is Geometry statusGeometry)
+            icon.Data = statusGeometry;
+    }
+
+    private void StatusCenterFlyout_Opened(object? sender, EventArgs e)
+    {
+        SetIconResource(StatusCenterIcon, "Icon.Files.App.ThemedIcons.StatusCenter.Filled");
+    }
+
+    private void StatusCenterFlyout_Closed(object? sender, EventArgs e)
+    {
+        SetIconResource(StatusCenterIcon, "Icon.Files.App.ThemedIcons.StatusCenter");
     }
 }

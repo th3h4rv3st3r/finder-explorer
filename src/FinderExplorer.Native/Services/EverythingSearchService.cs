@@ -17,7 +17,15 @@ namespace FinderExplorer.Native.Services;
 /// </summary>
 public sealed class EverythingSearchService : ISearchService
 {
-    public bool IsEverythingAvailable => NativeBridge.ES_IsAvailable() == 1;
+    private readonly ISettingsService _settings;
+
+    public EverythingSearchService(ISettingsService settings)
+    {
+        _settings = settings;
+    }
+
+    public bool IsEverythingAvailable =>
+        _settings.Current.UseEverythingSearch && NativeBridge.ES_IsAvailable() == 1;
 
     public async IAsyncEnumerable<SearchResult> SearchAsync(
         string            query,

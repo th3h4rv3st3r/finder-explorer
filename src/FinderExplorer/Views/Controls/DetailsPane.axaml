@@ -80,21 +80,11 @@
                                TextWrapping="Wrap"
                                Margin="0,0,0,14" />
 
-                    <TextBlock Text="Tags" Classes="details-header" Margin="0,0,0,8" />
-                    <Button Classes="details-link" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <PathIcon Data="{DynamicResource Icon.Edit}" Width="14" Height="14"
-                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                            <TextBlock Text="Edit file tags" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        </StackPanel>
-                    </Button>
-
                     <Button Classes="details-props-btn"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
                             Command="{CompiledBinding ShowPropertiesCommand}"
-                            Margin="0,14,0,0">
+                            Margin="0,2,0,0">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <PathIcon Data="{DynamicResource Icon.Settings}" Width="14" Height="14"
                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

@@ -2,7 +2,13 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FinderExplorer.Core.Models;
 using FinderExplorer.Core.Services;
+using FinderExplorer.Native.Bridge;
+using FinderExplorer.Views.Dialogs;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
@@ -25,12 +31,20 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly IFileSystemService _fileSystem;
     private readonly ISearchService _searchService;
     private readonly IThumbnailService _thumbnailService;
+    private readonly ISettingsService _settingsService;
+    private readonly ILifecycleService _lifecycleService;
+    private readonly IDefaultFileManagerService _defaultFileManagerService;
     private CancellationTokenSource? _loadCts;
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _iconCts;
     private CancellationTokenSource? _detailsIconCts;
     private readonly SemaphoreSlim _iconResolveLimiter = new(8);
     private readonly string _shellIconCacheDir;
+    private bool _suppressSettingsSync;
+    private readonly List<string> _clipboardPaths = [];
+    private ClipboardOperation _clipboardOperation = ClipboardOperation.None;
+
+    private const int OperationCanceledHResult = unchecked((int)0x800704C7);
 
     [ObservableProperty]
     private string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -47,6 +61,10 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(OpenSelectedItemCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteSelectedItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CutSelectedItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CopySelectedItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RenameSelectedItemCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ShareSelectedItemCommand))]
     private FileItemViewModel? _selectedItem;
 
     [ObservableProperty]
@@ -77,10 +95,59 @@ public partial class MainWindowViewModel : ObservableObject
     private bool _isNextcloudExpanded = true;
 
     [ObservableProperty]
-    private bool _isTagsExpanded = true;
+    [NotifyCanExecuteChangedFor(nameof(CloseSettingsCommand))]
+    private bool _isSettingsOpen;
+
+    [ObservableProperty]
+    private string _settingsSection = "general";
+
+    [ObservableProperty]
+    private bool _settingsRunAtStartup;
+
+    [ObservableProperty]
+    private bool _settingsRunInBackground;
+
+    [ObservableProperty]
+    private bool _settingsShowTrayIcon;
+
+    [ObservableProperty]
+    private bool _settingsSmoothScrolling = true;
+
+    [ObservableProperty]
+    private bool _settingsShowDetailsPane = true;
+
+    [ObservableProperty]
+    private bool _settingsShowHiddenFiles;
+
+    [ObservableProperty]
+    private bool _settingsUseEverythingSearch = true;
+
+    [ObservableProperty]
+    private bool _settingsUseGpuAcceleration = true;
+
+    [ObservableProperty]
+    private bool _settingsConfirmBeforeDelete = true;
+
+    [ObservableProperty]
+    private bool _settingsDefaultFileManager;
+
+    [ObservableProperty]
+    private string _settingsLanguage = "pt-BR";
+
+    [ObservableProperty]
+    private string _settingsOperationNotice = string.Empty;
 
     [ObservableProperty]
     private bool _isDetailsPaneVisible = true;
+
+    [ObservableProperty]
+    private double _sidebarPaneWidth = 300;
+
+    [ObservableProperty]
+    private double _detailsPaneWidth = 320;
+
+    [ObservableProperty]
+    private double _detailsSplitterWidth = 5;
 
     [ObservableProperty]
     private bool _isDetailsTabSelected = true;
@@ -93,6 +160,15 @@ public partial class MainWindowViewModel : ObservableObject
 
     [ObservableProperty]
     private string _searchQuery = string.Empty;
+
+    [ObservableProperty]
+    private SortField _activeSortField = SortField.Name;
+
+    [ObservableProperty]
+    private bool _isSortAscending = true;
+
+    [ObservableProperty]
+    private bool _showHiddenItems;
 
     [ObservableProperty]
     private string _itemCountText = string.Empty;
@@ -146,7 +222,7 @@ public partial class MainWindowViewModel : ObservableObject
     private const string IconCacheVersion = "v5";
     private const int ListIconResolveSizePx = 32;
     private const int DetailsIconResolveSizePx = 256;
-    private const int WindowsFolderIconResolveSizePx = 64;
+    private const int WindowsFolderIconResolveSizePx = 256;
 
     private static readonly HashSet<string> IconOnlyExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -156,25 +232,70 @@ public partial class MainWindowViewModel : ObservableObject
         ".iso", ".img", ".vhd", ".vhdx"
     };
 
+    private enum ClipboardOperation
+    {
+        None,
+        Copy,
+        Cut
+    }
+
     public SidebarItemViewModel SidebarHome { get; }
     public SidebarItemViewModel SidebarNetwork { get; }
     public SidebarItemViewModel SidebarNextcloud { get; }
 
     private bool HasSelectedItem => SelectedItem is not null;
+    public bool HasSelection => SelectedItem is not null;
+    public bool IsSortByName => ActiveSortField == SortField.Name;
+    public bool IsSortByModified => ActiveSortField == SortField.Modified;
+    public bool IsSortByType => ActiveSortField == SortField.Type;
+    public bool IsSortBySize => ActiveSortField == SortField.Size;
+    public bool IsSortDescending => !IsSortAscending;
+    public string SortDirectionIconKey => IsSortAscending ? "Icon.ChevronUp" : "Icon.ChevronDown";
+    public bool HasClipboardItems => _clipboardPaths.Count > 0;
+    public bool IsSettingsGeneralSection => string.Equals(SettingsSection, "general", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsAppearanceSection => string.Equals(SettingsSection, "appearance", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsLayoutSection => string.Equals(SettingsSection, "layout", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsFilesFoldersSection => string.Equals(SettingsSection, "files_folders", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsActionsSection => string.Equals(SettingsSection, "actions", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsAdvancedSection => string.Equals(SettingsSection, "advanced", StringComparison.OrdinalIgnoreCase);
+    public bool IsSettingsAboutSection => string.Equals(SettingsSection, "about", StringComparison.OrdinalIgnoreCase);
+    public bool HasSettingsOperationNotice => !string.IsNullOrWhiteSpace(SettingsOperationNotice);
+    public string AboutVersionText =>
+        typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.1.0";
+    public string AboutAuthorText => "th3h4rv3st3r";
+    public string SupportedLanguagesText => "pt-BR, en_GB";
+    public string SettingsSectionTitle => SettingsSection switch
+    {
+        "general" => "General",
+        "appearance" => "Appearance",
+        "layout" => "Layout",
+        "files_folders" => "Files & folders",
+        "actions" => "Actions",
+        "advanced" => "Advanced",
+        "about" => "About",
+        _ => "General"
+    };
 
     public MainWindowViewModel(
         IFileSystemService fileSystem,
         ISearchService searchService,
-        IThumbnailService thumbnailService)
+        IThumbnailService thumbnailService,
+        ISettingsService settingsService,
+        ILifecycleService lifecycleService,
+        IDefaultFileManagerService defaultFileManagerService)
     {
         _fileSystem = fileSystem;
         _searchService = searchService;
         _thumbnailService = thumbnailService;
+        _settingsService = settingsService;
+        _lifecycleService = lifecycleService;
+        _defaultFileManagerService = defaultFileManagerService;
         _shellIconCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "FinderExplorer",
             "icons");
         Directory.CreateDirectory(_shellIconCacheDir);
+        LoadPersistedSettings();
 
         var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
@@ -195,14 +316,314 @@ public partial class MainWindowViewModel : ObservableObject
 
     partial void OnSelectedItemChanged(FileItemViewModel? value)
     {
+        OnPropertyChanged(nameof(HasSelection));
         UpdateDetailsState();
         UpdatePreviewState();
         _ = ResolveSelectedItemDetailsIconAsync(value);
     }
 
+    partial void OnCurrentPathChanged(string value)
+    {
+        PasteFromClipboardCommand.NotifyCanExecuteChanged();
+    }
+
     public bool DetailsHasImageIcon => !string.IsNullOrWhiteSpace(DetailsIconImagePath);
 
     partial void OnDetailsIconImagePathChanged(string? value) => OnPropertyChanged(nameof(DetailsHasImageIcon));
+
+    partial void OnActiveSortFieldChanged(SortField value)
+    {
+        OnPropertyChanged(nameof(IsSortByName));
+        OnPropertyChanged(nameof(IsSortByModified));
+        OnPropertyChanged(nameof(IsSortByType));
+        OnPropertyChanged(nameof(IsSortBySize));
+
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.SortField = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnIsSortAscendingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsSortDescending));
+        OnPropertyChanged(nameof(SortDirectionIconKey));
+
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.SortAscending = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnShowHiddenItemsChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.ShowHiddenFiles = value;
+        _suppressSettingsSync = true;
+        SettingsShowHiddenFiles = value;
+        _suppressSettingsSync = false;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnIsDetailsPaneVisibleChanged(bool value)
+    {
+        if (value)
+        {
+            if (DetailsPaneWidth <= 0)
+                DetailsPaneWidth = 320;
+
+            DetailsSplitterWidth = 5;
+        }
+        else
+        {
+            DetailsPaneWidth = 0;
+            DetailsSplitterWidth = 0;
+        }
+
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.ShowDetailsPane = value;
+        _suppressSettingsSync = true;
+        SettingsShowDetailsPane = value;
+        _suppressSettingsSync = false;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsSectionChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsSettingsGeneralSection));
+        OnPropertyChanged(nameof(IsSettingsAppearanceSection));
+        OnPropertyChanged(nameof(IsSettingsLayoutSection));
+        OnPropertyChanged(nameof(IsSettingsFilesFoldersSection));
+        OnPropertyChanged(nameof(IsSettingsActionsSection));
+        OnPropertyChanged(nameof(IsSettingsAdvancedSection));
+        OnPropertyChanged(nameof(IsSettingsAboutSection));
+        OnPropertyChanged(nameof(SettingsSectionTitle));
+    }
+
+    partial void OnSettingsOperationNoticeChanged(string value)
+        => OnPropertyChanged(nameof(HasSettingsOperationNotice));
+
+    partial void OnSettingsRunInBackgroundChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.MinimizeToTray = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsSmoothScrollingChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.SmoothScrolling = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsShowDetailsPaneChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        IsDetailsPaneVisible = value;
+        _settingsService.Current.ShowDetailsPane = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsShowHiddenFilesChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        ShowHiddenItems = value;
+        _settingsService.Current.ShowHiddenFiles = value;
+        _ = LoadDirectoryAsync();
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsUseEverythingSearchChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.UseEverythingSearch = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsUseGpuAccelerationChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.UseGpuThumbnails = value;
+        _thumbnailService.InvalidateAll();
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsConfirmBeforeDeleteChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.ConfirmBeforeDelete = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsLanguageChanged(string value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        var normalized = NormalizeLanguageCode(value);
+        if (!string.Equals(value, normalized, StringComparison.Ordinal))
+        {
+            _suppressSettingsSync = true;
+            SettingsLanguage = normalized;
+            _suppressSettingsSync = false;
+        }
+
+        _settingsService.Current.LanguageCode = normalized;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsRunAtStartupChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _ = ApplyRunAtStartupChangeAsync(value);
+    }
+
+    partial void OnSettingsDefaultFileManagerChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _ = ApplyDefaultFileManagerChangeAsync(value);
+    }
+
+    private void LoadPersistedSettings()
+    {
+        var settings = _settingsService.Current;
+
+        _suppressSettingsSync = true;
+        try
+        {
+            ShowHiddenItems = settings.ShowHiddenFiles;
+            ActiveSortField = settings.SortField;
+            IsSortAscending = settings.SortAscending;
+            IsDetailsPaneVisible = settings.ShowDetailsPane;
+
+            SettingsRunInBackground = settings.MinimizeToTray;
+            SettingsRunAtStartup = settings.RunAtStartup || _lifecycleService.IsRunAtStartupEnabled();
+            SettingsShowTrayIcon = false; // not wired yet in native tray bridge
+            SettingsSmoothScrolling = settings.SmoothScrolling;
+            SettingsShowDetailsPane = settings.ShowDetailsPane;
+            SettingsShowHiddenFiles = settings.ShowHiddenFiles;
+            SettingsUseEverythingSearch = settings.UseEverythingSearch;
+            SettingsUseGpuAcceleration = settings.UseGpuThumbnails;
+            SettingsConfirmBeforeDelete = settings.ConfirmBeforeDelete;
+            SettingsDefaultFileManager = settings.IsDefaultFileManager || _defaultFileManagerService.IsRegistered;
+            SettingsLanguage = NormalizeLanguageCode(settings.LanguageCode);
+            settings.RunAtStartup = SettingsRunAtStartup;
+            settings.IsDefaultFileManager = SettingsDefaultFileManager;
+        }
+        finally
+        {
+            _suppressSettingsSync = false;
+        }
+    }
+
+    private async Task ApplyRunAtStartupChangeAsync(bool enabled)
+    {
+        try
+        {
+            await _lifecycleService.SetRunAtStartupAsync(enabled);
+            var applied = _lifecycleService.IsRunAtStartupEnabled();
+
+            _suppressSettingsSync = true;
+            SettingsRunAtStartup = applied;
+            _suppressSettingsSync = false;
+
+            _settingsService.Current.RunAtStartup = applied;
+            SettingsOperationNotice = string.Empty;
+            await SaveSettingsAsync();
+        }
+        catch
+        {
+            _suppressSettingsSync = true;
+            SettingsRunAtStartup = _settingsService.Current.RunAtStartup;
+            _suppressSettingsSync = false;
+            SettingsOperationNotice = "Could not update Windows startup option.";
+        }
+    }
+
+    private async Task ApplyDefaultFileManagerChangeAsync(bool enabled)
+    {
+        try
+        {
+            if (enabled)
+                await _defaultFileManagerService.RegisterAsync();
+            else
+                await _defaultFileManagerService.UnregisterAsync();
+
+            var applied = _defaultFileManagerService.IsRegistered;
+            _suppressSettingsSync = true;
+            SettingsDefaultFileManager = applied;
+            _suppressSettingsSync = false;
+
+            _settingsService.Current.IsDefaultFileManager = applied;
+            SettingsOperationNotice = string.Empty;
+            await SaveSettingsAsync();
+        }
+        catch
+        {
+            _suppressSettingsSync = true;
+            SettingsDefaultFileManager = _settingsService.Current.IsDefaultFileManager;
+            _suppressSettingsSync = false;
+            SettingsOperationNotice = "Default file manager change failed. Try running as administrator.";
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        _settingsService.Current.ShowHiddenFiles = ShowHiddenItems;
+        _settingsService.Current.SortField = ActiveSortField;
+        _settingsService.Current.SortAscending = IsSortAscending;
+        _settingsService.Current.ShowDetailsPane = IsDetailsPaneVisible;
+        _settingsService.Current.MinimizeToTray = SettingsRunInBackground;
+        _settingsService.Current.UseEverythingSearch = SettingsUseEverythingSearch;
+        _settingsService.Current.UseGpuThumbnails = SettingsUseGpuAcceleration;
+        _settingsService.Current.ConfirmBeforeDelete = SettingsConfirmBeforeDelete;
+        _settingsService.Current.IsDefaultFileManager = SettingsDefaultFileManager;
+        _settingsService.Current.LanguageCode = NormalizeLanguageCode(SettingsLanguage);
+        _settingsService.Current.SmoothScrolling = SettingsSmoothScrolling;
+        _settingsService.Current.RunAtStartup = SettingsRunAtStartup;
+
+        try
+        {
+            await _settingsService.SaveAsync();
+        }
+        catch
+        {
+            SettingsOperationNotice = "Could not persist settings right now.";
+        }
+    }
+
+    private static string NormalizeLanguageCode(string? code)
+    {
+        if (string.Equals(code, "en_GB", StringComparison.OrdinalIgnoreCase))
+            return "en_GB";
+
+        return "pt-BR";
+    }
 
     private void InitializeSidebar()
     {
@@ -311,6 +732,259 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task CreateNewFolderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentPath) || !_fileSystem.DirectoryExists(CurrentPath))
+            return;
+
+        const string defaultName = "New folder";
+        var folderName = defaultName;
+        var sequence = 2;
+
+        while (Directory.Exists(Path.Combine(CurrentPath, folderName)) ||
+               File.Exists(Path.Combine(CurrentPath, folderName)))
+        {
+            folderName = $"{defaultName} ({sequence++})";
+        }
+
+        try
+        {
+            await _fileSystem.CreateFolderAsync(CurrentPath, folderName);
+            await LoadDirectoryAsync();
+            SelectedItem = Items.FirstOrDefault(item =>
+                item.IsDirectory &&
+                item.Name.Equals(folderName, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            // Ignore create failures (permissions, invalid path, race conditions).
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedItem))]
+    private void CutSelectedItem()
+    {
+        if (SelectedItem is null)
+            return;
+
+        _clipboardPaths.Clear();
+        _clipboardPaths.Add(SelectedItem.FullPath);
+        _clipboardOperation = ClipboardOperation.Cut;
+        OnPropertyChanged(nameof(HasClipboardItems));
+        PasteFromClipboardCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedItem))]
+    private void CopySelectedItem()
+    {
+        if (SelectedItem is null)
+            return;
+
+        _clipboardPaths.Clear();
+        _clipboardPaths.Add(SelectedItem.FullPath);
+        _clipboardOperation = ClipboardOperation.Copy;
+        OnPropertyChanged(nameof(HasClipboardItems));
+        PasteFromClipboardCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanPasteFromClipboard()
+    {
+        return _clipboardPaths.Count > 0
+               && _clipboardOperation != ClipboardOperation.None
+               && !string.IsNullOrWhiteSpace(CurrentPath)
+               && _fileSystem.DirectoryExists(CurrentPath);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPasteFromClipboard))]
+    private async Task PasteFromClipboardAsync()
+    {
+        if (!CanPasteFromClipboard())
+            return;
+
+        var sources = _clipboardPaths.ToArray();
+        var destination = CurrentPath;
+        var isMove = _clipboardOperation == ClipboardOperation.Cut;
+        var operationCompleted = false;
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                var hwnd = TryGetOwnerWindowHandle();
+                var hr = isMove
+                    ? NativeBridge.Shell_MoveItems(sources, sources.Length, destination, hwnd)
+                    : NativeBridge.Shell_CopyItems(sources, sources.Length, destination, hwnd);
+
+                if (hr == OperationCanceledHResult)
+                    return;
+
+                operationCompleted = hr >= 0;
+            }
+
+            if (!operationCompleted)
+            {
+                foreach (var source in sources)
+                {
+                    if (isMove)
+                        await _fileSystem.MoveAsync(source, destination);
+                    else
+                        await _fileSystem.CopyAsync(source, destination);
+                }
+            }
+        }
+        catch
+        {
+            // Keep UI responsive and leave clipboard state unchanged on failure.
+            return;
+        }
+
+        if (isMove)
+        {
+            _clipboardPaths.Clear();
+            _clipboardOperation = ClipboardOperation.None;
+            OnPropertyChanged(nameof(HasClipboardItems));
+            PasteFromClipboardCommand.NotifyCanExecuteChanged();
+        }
+
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedItem))]
+    private async Task RenameSelectedItemAsync()
+    {
+        if (SelectedItem is null)
+            return;
+
+        var dialog = new TextInputDialog(
+            title: "Rename",
+            message: "Enter a new name",
+            confirmButtonText: "Rename",
+            initialValue: SelectedItem.Name);
+
+        var owner = TryGetOwnerWindow();
+        if (owner is null)
+            return;
+
+        var newName = await dialog.ShowDialog<string?>(owner);
+        if (string.IsNullOrWhiteSpace(newName))
+            return;
+
+        newName = newName.Trim();
+        if (string.Equals(newName, SelectedItem.Name, StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            var renamed = false;
+            if (OperatingSystem.IsWindows())
+            {
+                var hr = NativeBridge.Shell_RenameItem(SelectedItem.FullPath, newName, TryGetOwnerWindowHandle());
+                if (hr == OperationCanceledHResult)
+                    return;
+
+                renamed = hr >= 0;
+            }
+
+            if (!renamed)
+                await _fileSystem.RenameAsync(SelectedItem.FullPath, newName);
+        }
+        catch
+        {
+            return;
+        }
+
+        await LoadDirectoryAsync();
+        SelectedItem = Items.FirstOrDefault(item =>
+            item.Name.Equals(newName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedItem))]
+    private async Task ShareSelectedItemAsync()
+    {
+        if (SelectedItem is null)
+            return;
+
+        var owner = TryGetOwnerWindow();
+        if (owner?.Clipboard is null)
+            return;
+
+        await owner.Clipboard.SetTextAsync(SelectedItem.FullPath);
+    }
+
+    private static Window? TryGetOwnerWindow()
+    {
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+            return null;
+
+        return desktop.MainWindow;
+    }
+
+    private static IntPtr TryGetOwnerWindowHandle()
+    {
+        return TryGetOwnerWindow()?.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+    }
+
+    [RelayCommand]
+    private async Task SetSortFieldAsync(string? sortFieldName)
+    {
+        if (string.IsNullOrWhiteSpace(sortFieldName) ||
+            !Enum.TryParse(sortFieldName, ignoreCase: true, out SortField requestedField))
+        {
+            return;
+        }
+
+        if (ActiveSortField == requestedField)
+            return;
+
+        ActiveSortField = requestedField;
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand]
+    private async Task SortByColumnAsync(string? sortFieldName)
+    {
+        if (string.IsNullOrWhiteSpace(sortFieldName) ||
+            !Enum.TryParse(sortFieldName, ignoreCase: true, out SortField requestedField))
+        {
+            return;
+        }
+
+        if (ActiveSortField == requestedField)
+            IsSortAscending = !IsSortAscending;
+        else
+            ActiveSortField = requestedField;
+
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand]
+    private async Task SetSortAscendingAsync()
+    {
+        if (IsSortAscending)
+            return;
+
+        IsSortAscending = true;
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand]
+    private async Task SetSortDescendingAsync()
+    {
+        if (!IsSortAscending)
+            return;
+
+        IsSortAscending = false;
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand]
+    private async Task ToggleHiddenItemsAsync()
+    {
+        ShowHiddenItems = !ShowHiddenItems;
+        await LoadDirectoryAsync();
+    }
+
+    [RelayCommand]
     private async Task SearchAsync()
     {
         var query = SearchQuery.Trim();
@@ -388,13 +1062,45 @@ public partial class MainWindowViewModel : ObservableObject
         if (item is null)
             return;
 
-        await _fileSystem.DeleteAsync(item.FullPath);
-        Items.Remove(item);
+        if (SettingsConfirmBeforeDelete)
+        {
+            var confirmDialog = new ConfirmationDialog(
+                title: "Delete item",
+                message: $"Move \"{item.Name}\" to Recycle Bin?",
+                primaryButtonText: "Delete",
+                closeButtonText: "Cancel",
+                isPrimaryDestructive: true);
 
-        if (ReferenceEquals(SelectedItem, item))
-            SelectedItem = null;
+            var owner = TryGetOwnerWindow();
+            if (owner is null)
+                return;
 
-        UpdateItemCountText();
+            var confirmed = await confirmDialog.ShowDialog<bool>(owner);
+            if (!confirmed)
+                return;
+        }
+
+        try
+        {
+            var deleted = false;
+            if (OperatingSystem.IsWindows())
+            {
+                var hr = NativeBridge.Shell_DeleteItems([item.FullPath], 1, TryGetOwnerWindowHandle(), recycle: true);
+                if (hr == OperationCanceledHResult)
+                    return;
+
+                deleted = hr >= 0;
+            }
+
+            if (!deleted)
+                await _fileSystem.DeleteAsync(item.FullPath);
+        }
+        catch
+        {
+            return;
+        }
+
+        await LoadDirectoryAsync();
     }
 
     [RelayCommand(CanExecute = nameof(HasSelectedItem))]
@@ -442,6 +1148,30 @@ public partial class MainWindowViewModel : ObservableObject
         {
             // Ignore shell failures to keep UI responsive.
         }
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        LoadPersistedSettings();
+        SettingsOperationNotice = string.Empty;
+        SettingsSection = "general";
+        IsSettingsOpen = true;
+    }
+
+    [RelayCommand(CanExecute = nameof(IsSettingsOpen))]
+    private void CloseSettings()
+    {
+        IsSettingsOpen = false;
+    }
+
+    [RelayCommand]
+    private void SelectSettingsSection(string? section)
+    {
+        if (string.IsNullOrWhiteSpace(section))
+            return;
+
+        SettingsSection = section.Trim().ToLowerInvariant();
     }
 
     [RelayCommand]
@@ -537,8 +1267,7 @@ public partial class MainWindowViewModel : ObservableObject
         if (SelectedTab is not null)
         {
             SelectedTab.Path = normalizedPath;
-            SelectedTab.Title = BuildTabTitle(normalizedPath);
-            ApplyTabIcon(SelectedTab, normalizedPath);
+            ApplyTabPresentation(SelectedTab, normalizedPath);
         }
 
         UpdateBreadcrumbs();
@@ -577,7 +1306,12 @@ public partial class MainWindowViewModel : ObservableObject
         while (segments.Count > 0)
         {
             var full = segments.Pop();
-            BreadcrumbSegments.Add(new BreadcrumbSegmentViewModel(BuildBreadcrumbLabel(full), full, showSeparator));
+            var showChevronButton = segments.Count > 0;
+            BreadcrumbSegments.Add(new BreadcrumbSegmentViewModel(
+                BuildBreadcrumbLabel(full),
+                full,
+                showSeparator,
+                showChevronButton));
             showSeparator = true;
         }
     }
@@ -592,7 +1326,11 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
-            var fsItems = await _fileSystem.GetItemsAsync(CurrentPath, sort: null, filter: null, ct);
+            var fsItems = await _fileSystem.GetItemsAsync(
+                CurrentPath,
+                sort: BuildSortOptions(),
+                filter: BuildFilterOptions(),
+                ct);
             ct.ThrowIfCancellationRequested();
 
             Items.Clear();
@@ -633,6 +1371,13 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    private SortOptions BuildSortOptions() => new(ActiveSortField, IsSortAscending);
+
+    private FilterOptions BuildFilterOptions() => new(
+        NameContains: null,
+        Extensions: null,
+        ShowHidden: ShowHiddenItems);
+
     private void UpdateDetailsState()
     {
         if (SelectedItem is not null)
@@ -660,9 +1405,10 @@ public partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        DetailsIconImagePath = SelectedTab?.IconImagePath;
+        var normalizedCurrentPath = string.IsNullOrWhiteSpace(CurrentPath) ? string.Empty : NormalizePath(CurrentPath);
+        DetailsIconImagePath = ResolveDetailsPaneIconPath(normalizedCurrentPath, SelectedTab?.IconImagePath);
         DetailsIconResourceKey = SelectedTab?.IconResourceKey ?? "Icon.Files.App.ThemedIcons.Folder";
-        DetailsTitleText = BuildTabTitle(CurrentPath);
+        DetailsTitleText = SelectedTab?.Title ?? GetDisplayTitleForPath(CurrentPath);
         DetailsMetricLabel = "Item count";
         DetailsMetricValue = ItemCountText;
         DetailsPathText = CurrentPath;
@@ -805,6 +1551,21 @@ public partial class MainWindowViewModel : ObservableObject
         _detailsIconCts = new CancellationTokenSource();
         var ct = _detailsIconCts.Token;
 
+        var normalizedPath = NormalizePath(item.FullPath);
+        if (TryGetKnownLocationIconKey(normalizedPath, out var knownIconKey))
+        {
+            var knownIconPath = GetHighQualityLocationIconPath(knownIconKey);
+            if (!string.IsNullOrWhiteSpace(knownIconPath))
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (ReferenceEquals(SelectedItem, item))
+                        DetailsIconImagePath = knownIconPath;
+                });
+                return;
+            }
+        }
+
         string? iconPath;
         await _iconResolveLimiter.WaitAsync(ct);
         try
@@ -934,6 +1695,12 @@ public partial class MainWindowViewModel : ObservableObject
         if (!OperatingSystem.IsWindows())
             return false;
 
+        if ((Directory.Exists(path) || File.Exists(path)) &&
+            TrySaveShellItemImageFactoryAsPng(path, cachePath, sizePx))
+        {
+            return true;
+        }
+
         if ((TryGetSystemImageListFileIconHandle(path, sizePx, out var fileIcon) ||
              TryGetShellFileIconHandle(path, sizePx, out fileIcon)) &&
             TryWriteIconHandleAsPng(fileIcon, cachePath, sizePx))
@@ -946,6 +1713,42 @@ public partial class MainWindowViewModel : ObservableObject
         return (TryGetSystemImageListExtensionIconHandle(extension, sizePx, out var extIcon) ||
                 TryGetShellExtensionIconHandle(extension, sizePx, out extIcon))
             && TryWriteIconHandleAsPng(extIcon, cachePath, sizePx);
+    }
+
+    private static bool TrySaveShellItemImageFactoryAsPng(string path, string cachePath, int sizePx)
+    {
+        IShellItemImageFactory? imageFactory = null;
+        IntPtr hBitmap = IntPtr.Zero;
+
+        try
+        {
+            var iid = IID_IShellItemImageFactory;
+            var hr = SHCreateItemFromParsingName(path, IntPtr.Zero, ref iid, out imageFactory);
+            if (hr != 0 || imageFactory is null)
+                return false;
+
+            var flags = SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK;
+            hr = imageFactory.GetImage(new SIZE { cx = sizePx, cy = sizePx }, flags, out hBitmap);
+            if (hr != 0 || hBitmap == IntPtr.Zero)
+                return false;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+            using var bitmap = System.Drawing.Image.FromHbitmap(hBitmap);
+            bitmap.Save(cachePath, System.Drawing.Imaging.ImageFormat.Png);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (hBitmap != IntPtr.Zero)
+                DeleteObject(hBitmap);
+
+            if (imageFactory is not null)
+                Marshal.ReleaseComObject(imageFactory);
+        }
     }
 
     private static bool TryGetShellFileIconHandle(string path, int sizePx, out IntPtr hIcon)
@@ -1116,6 +1919,8 @@ public partial class MainWindowViewModel : ObservableObject
     private const uint SHGFI_LARGEICON = 0x000000000;
     private const uint SHGFI_SYSICONINDEX = 0x000004000;
     private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
+    private const uint SIIGBF_BIGGERSIZEOK = 0x00000001;
+    private const uint SIIGBF_ICONONLY = 0x00000004;
     private const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
     private const int SHIL_SMALL = 0x0;
     private const int SHIL_LARGE = 0x1;
@@ -1123,6 +1928,14 @@ public partial class MainWindowViewModel : ObservableObject
     private const int SHIL_JUMBO = 0x4;
     private const int ILD_TRANSPARENT = 0x1;
     private static readonly Guid IID_IImageList = new("46EB5926-582E-4017-9FDF-E8998DAA0950");
+    private static readonly Guid IID_IShellItemImageFactory = new("BCC18B79-BA16-442F-80C4-8A59C30C463B");
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SIZE
+    {
+        public int cx;
+        public int cy;
+    }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct SHFILEINFOW
@@ -1146,9 +1959,20 @@ public partial class MainWindowViewModel : ObservableObject
         uint cbFileInfo,
         uint uFlags);
 
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHCreateItemFromParsingName(
+        string pszPath,
+        IntPtr pbc,
+        ref Guid riid,
+        [MarshalAs(UnmanagedType.Interface)] out IShellItemImageFactory ppv);
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyIcon(IntPtr hIcon);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteObject(IntPtr hObject);
 
     [DllImport("shell32.dll", EntryPoint = "#727")]
     private static extern int SHGetImageList(
@@ -1171,6 +1995,15 @@ public partial class MainWindowViewModel : ObservableObject
         [PreserveSig] int GetIcon(int i, int flags, out IntPtr picon);
     }
 
+    [ComImport]
+    [Guid("BCC18B79-BA16-442F-80C4-8A59C30C463B")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IShellItemImageFactory
+    {
+        [PreserveSig]
+        int GetImage(SIZE size, uint flags, out IntPtr phbm);
+    }
+
     private static string FormatDate(DateTime value) =>
         value == default ? "--" : value.ToString("dd MMMM yyyy HH:mm");
 
@@ -1188,7 +2021,7 @@ public partial class MainWindowViewModel : ObservableObject
 
     private void UpdateWindowTitle()
     {
-        var title = BuildTabTitle(CurrentPath);
+        var title = GetDisplayTitleForPath(CurrentPath);
         if (IsSearchActive && !string.IsNullOrWhiteSpace(SearchQuery))
             WindowTitle = $"Finder Explorer — {title} — pesquisa: {SearchQuery}";
         else
@@ -1235,12 +2068,58 @@ public partial class MainWindowViewModel : ObservableObject
             yield return vol;
     }
 
-    private static ExplorerTabViewModel CreateTab(string path)
+    private ExplorerTabViewModel CreateTab(string path)
     {
         var normalizedPath = NormalizePath(path);
         var tab = new ExplorerTabViewModel(BuildTabTitle(normalizedPath), normalizedPath);
-        ApplyTabIcon(tab, normalizedPath);
+        ApplyTabPresentation(tab, normalizedPath);
         return tab;
+    }
+
+    private void ApplyTabPresentation(ExplorerTabViewModel tab, string normalizedPath)
+    {
+        if (TryGetCanonicalTabMetadata(normalizedPath, out var canonicalTitle, out var canonicalIconPath))
+        {
+            tab.Title = canonicalTitle;
+            tab.IconImagePath = canonicalIconPath;
+            tab.IconResourceKey = "Icon.Files.App.ThemedIcons.Folder";
+            return;
+        }
+
+        tab.Title = BuildTabTitle(normalizedPath);
+        ApplyTabIcon(tab, normalizedPath);
+    }
+
+    private string GetDisplayTitleForPath(string path)
+    {
+        var normalizedPath = NormalizePath(path);
+        return TryGetCanonicalTabMetadata(normalizedPath, out var canonicalTitle, out _)
+            ? canonicalTitle
+            : BuildTabTitle(normalizedPath);
+    }
+
+    private bool TryGetCanonicalTabMetadata(string normalizedPath, out string title, out string iconPath)
+    {
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.UserProfile))
+        {
+            title = SidebarHome.Label;
+            iconPath = SidebarHome.IconPath;
+            return true;
+        }
+
+        if (IsRecycleBinPath(normalizedPath))
+        {
+            var recycleBinItem = SidebarFavorites.FirstOrDefault(i =>
+                i.Label.Equals("Recycle Bin", StringComparison.OrdinalIgnoreCase));
+
+            title = recycleBinItem?.Label ?? "Recycle Bin";
+            iconPath = recycleBinItem?.IconPath ?? GetSidebarIconUri("recyclebin");
+            return true;
+        }
+
+        title = string.Empty;
+        iconPath = string.Empty;
+        return false;
     }
 
     private static string NormalizePath(string path)
@@ -1267,12 +2146,16 @@ public partial class MainWindowViewModel : ObservableObject
 
     private static string BuildTabTitle(string path)
     {
-        var root = Path.GetPathRoot(path);
-        if (!string.IsNullOrWhiteSpace(root) && PathsEqual(path, root))
+        var normalizedPath = NormalizePath(path);
+        if (TryGetKnownLocationTitle(normalizedPath, out var knownTitle))
+            return knownTitle;
+
+        var root = Path.GetPathRoot(normalizedPath);
+        if (!string.IsNullOrWhiteSpace(root) && PathsEqual(normalizedPath, root))
             return root.TrimEnd(Path.DirectorySeparatorChar);
 
-        var name = Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        return string.IsNullOrWhiteSpace(name) ? path : name;
+        var name = Path.GetFileName(normalizedPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? normalizedPath : name;
     }
 
     private static void ApplyTabIcon(ExplorerTabViewModel tab, string normalizedPath)
@@ -1284,41 +2167,8 @@ public partial class MainWindowViewModel : ObservableObject
 
     private static (string? ImagePath, string ResourceKey) ResolveTabIcon(string normalizedPath)
     {
-        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.DesktopDirectory))
-            return (GetSidebarIconUri("desktop"), "Icon.Files.App.ThemedIcons.Folder");
-
-        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyDocuments))
-            return (GetSidebarIconUri("documents"), "Icon.Files.App.ThemedIcons.Folder");
-
-        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.UserProfile))
-            return (GetSidebarIconUri("folder"), "Icon.Files.App.ThemedIcons.Folder");
-
-        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyMusic))
-            return (GetSidebarIconUri("music"), "Icon.Files.App.ThemedIcons.Folder");
-
-        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyPictures))
-            return (GetSidebarIconUri("pictures"), "Icon.Files.App.ThemedIcons.Folder");
-
-        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyVideos))
-            return (GetSidebarIconUri("videos"), "Icon.Files.App.ThemedIcons.Folder");
-
-        var downloads = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!string.IsNullOrWhiteSpace(downloads))
-        {
-            var downloadsPath = NormalizePath(Path.Combine(downloads, "Downloads"));
-            if (PathsEqual(normalizedPath, downloadsPath))
-                return (GetSidebarIconUri("downloads"), "Icon.Files.App.ThemedIcons.Folder");
-        }
-
-        if (IsNextcloudPath(normalizedPath))
-            return (GetSidebarIconUri("nextcloud"), "Icon.Files.App.ThemedIcons.Folder");
-
-        var root = Path.GetPathRoot(normalizedPath);
-        if (!string.IsNullOrWhiteSpace(root) && PathsEqual(normalizedPath, root))
-            return (GetSidebarIconUri("drive"), "Icon.Files.App.ThemedIcons.Folder");
-
-        if (normalizedPath.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase))
-            return (GetSidebarIconUri("network"), "Icon.Files.App.ThemedIcons.Folder");
+        if (TryGetKnownLocationIconKey(normalizedPath, out var iconKey))
+            return (GetSidebarIconUri(iconKey), "Icon.Files.App.ThemedIcons.Folder");
 
         return (GetSidebarIconUri("folder"), "Icon.Files.App.ThemedIcons.Folder");
     }
@@ -1354,10 +2204,150 @@ public partial class MainWindowViewModel : ObservableObject
             || normalizedPath.EndsWith("/Nextcloud", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string GetWindowsFolderIconPath()
+    private static bool IsRecycleBinPath(string normalizedPath)
+    {
+        if (string.IsNullOrWhiteSpace(normalizedPath))
+            return false;
+
+        var trimmed = normalizedPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return trimmed.IndexOf($"{Path.DirectorySeparatorChar}$Recycle.Bin", StringComparison.OrdinalIgnoreCase) >= 0
+               || trimmed.EndsWith("$Recycle.Bin", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryGetKnownLocationTitle(string normalizedPath, out string title)
+    {
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.UserProfile))
+        {
+            title = "Home";
+            return true;
+        }
+
+        if (IsRecycleBinPath(normalizedPath))
+        {
+            title = "Recycle Bin";
+            return true;
+        }
+
+        if (IsNextcloudPath(normalizedPath))
+        {
+            title = "Nextcloud";
+            return true;
+        }
+
+        if (normalizedPath.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase))
+        {
+            title = "Network";
+            return true;
+        }
+
+        title = string.Empty;
+        return false;
+    }
+
+    private static bool TryGetKnownLocationIconKey(string normalizedPath, out string iconKey)
+    {
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.UserProfile))
+        {
+            iconKey = "home";
+            return true;
+        }
+
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.DesktopDirectory))
+        {
+            iconKey = "desktop";
+            return true;
+        }
+
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyDocuments))
+        {
+            iconKey = "documents";
+            return true;
+        }
+
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyMusic))
+        {
+            iconKey = "music";
+            return true;
+        }
+
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyPictures))
+        {
+            iconKey = "pictures";
+            return true;
+        }
+
+        if (IsSpecialFolder(normalizedPath, Environment.SpecialFolder.MyVideos))
+        {
+            iconKey = "videos";
+            return true;
+        }
+
+        var downloads = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(downloads))
+        {
+            var downloadsPath = NormalizePath(Path.Combine(downloads, "Downloads"));
+            if (PathsEqual(normalizedPath, downloadsPath))
+            {
+                iconKey = "downloads";
+                return true;
+            }
+        }
+
+        if (IsRecycleBinPath(normalizedPath))
+        {
+            iconKey = "recyclebin";
+            return true;
+        }
+
+        if (IsNextcloudPath(normalizedPath))
+        {
+            iconKey = "nextcloud";
+            return true;
+        }
+
+        var root = Path.GetPathRoot(normalizedPath);
+        if (!string.IsNullOrWhiteSpace(root) && PathsEqual(normalizedPath, root))
+        {
+            iconKey = "drive";
+            return true;
+        }
+
+        if (normalizedPath.StartsWith(@"\\", StringComparison.OrdinalIgnoreCase))
+        {
+            iconKey = "network";
+            return true;
+        }
+
+        iconKey = string.Empty;
+        return false;
+    }
+
+    private static string? ResolveDetailsPaneIconPath(string normalizedPath, string? fallbackIconPath)
+    {
+        if (TryGetKnownLocationIconKey(normalizedPath, out var knownIconKey))
+            return GetHighQualityLocationIconPath(knownIconKey);
+
+        return fallbackIconPath;
+    }
+
+    private static string GetHighQualityLocationIconPath(string iconKey) => iconKey switch
+    {
+        "desktop" => GetWindowsIconPathForKey("desktop", GetSidebarIconUri("desktop")),
+        "documents" => GetWindowsIconPathForKey("documents", GetSidebarIconUri("documents")),
+        "downloads" => GetWindowsIconPathForKey("downloads", GetSidebarIconUri("downloads")),
+        "pictures" => GetWindowsIconPathForKey("pictures", GetSidebarIconUri("pictures")),
+        "music" => GetWindowsIconPathForKey("music", GetSidebarIconUri("music")),
+        "videos" => GetWindowsIconPathForKey("videos", GetSidebarIconUri("videos")),
+        "recyclebin" => GetWindowsIconPathForKey("recyclebin", GetSidebarIconUri("recyclebin")),
+        "drive" => GetWindowsIconPathForKey("drive", GetSidebarIconUri("drive")),
+        "folder" => GetWindowsIconPathForKey("folder", GetSidebarIconUri("folder")),
+        _ => GetSidebarIconUri(iconKey)
+    };
+
+    private static string GetWindowsIconPathForKey(string key, string fallbackUri)
     {
         if (!OperatingSystem.IsWindows())
-            return "avares://FinderExplorer/Assets/Icons/WinUI/Drive.png";
+            return fallbackUri;
 
         try
         {
@@ -1367,16 +2357,14 @@ public partial class MainWindowViewModel : ObservableObject
                 "icons");
             Directory.CreateDirectory(cacheDir);
 
-            var iconPath = Path.Combine(cacheDir, $"windows-folder-{WindowsFolderIconResolveSizePx}.png");
+            var iconPath = Path.Combine(cacheDir, $"windows-{key}-{WindowsFolderIconResolveSizePx}.png");
             if (File.Exists(iconPath))
                 return iconPath;
 
-            var folderSeed = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            if (string.IsNullOrWhiteSpace(folderSeed) || !Directory.Exists(folderSeed))
-                folderSeed = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            var seedPath = ResolveWindowsIconSeedPath(key);
 
-            if (!string.IsNullOrWhiteSpace(folderSeed) &&
-                TrySaveAssociatedShellIconAsPng(folderSeed, iconPath, WindowsFolderIconResolveSizePx))
+            if (!string.IsNullOrWhiteSpace(seedPath) &&
+                TrySaveAssociatedShellIconAsPng(seedPath, iconPath, WindowsFolderIconResolveSizePx))
             {
                 return iconPath;
             }
@@ -1386,7 +2374,29 @@ public partial class MainWindowViewModel : ObservableObject
             // Fallback below.
         }
 
-        return "avares://FinderExplorer/Assets/Icons/WinUI/Drive.png";
+        return fallbackUri;
+    }
+
+    private static string ResolveWindowsIconSeedPath(string key)
+    {
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var systemRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.System))
+                         ?? Path.GetPathRoot(Environment.SystemDirectory)
+                         ?? "C:\\";
+
+        return key switch
+        {
+            "desktop" => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+            "documents" => Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "downloads" => Path.Combine(userProfile, "Downloads"),
+            "pictures" => Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+            "music" => Environment.GetFolderPath(Environment.SpecialFolder.MyMusic),
+            "videos" => Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            "drive" => systemRoot,
+            "recyclebin" => Path.Combine(systemRoot, "$Recycle.Bin"),
+            "folder" => userProfile,
+            _ => userProfile
+        };
     }
 
     private static string GetSidebarIconUri(string iconKey) => iconKey switch
@@ -1398,7 +2408,7 @@ public partial class MainWindowViewModel : ObservableObject
         "pictures" => "avares://FinderExplorer/Assets/Icons/WinUI/Pictures.png",
         "music" => "avares://FinderExplorer/Assets/Icons/WinUI/Music.png",
         "videos" => "avares://FinderExplorer/Assets/Icons/WinUI/Videos.png",
-        "folder" => GetWindowsFolderIconPath(),
+        "folder" => GetWindowsIconPathForKey("folder", "avares://FinderExplorer/Assets/Icons/WinUI/Drive.png"),
         "recyclebin" => "avares://FinderExplorer/Assets/Icons/WinUI/RecycleBin.png",
         "drive" => "avares://FinderExplorer/Assets/Icons/WinUI/Drive.png",
         "network" => "avares://FinderExplorer/Assets/Icons/WinUI/Network.png",
@@ -1464,12 +2474,14 @@ public partial class BreadcrumbSegmentViewModel : ObservableObject
     [ObservableProperty] private string _label;
     [ObservableProperty] private string _fullPath;
     [ObservableProperty] private bool _showSeparator;
+    [ObservableProperty] private bool _showChevronButton;
 
-    public BreadcrumbSegmentViewModel(string label, string fullPath, bool showSeparator)
+    public BreadcrumbSegmentViewModel(string label, string fullPath, bool showSeparator, bool showChevronButton)
     {
         _label = label;
         _fullPath = fullPath;
         _showSeparator = showSeparator;
+        _showChevronButton = showChevronButton;
     }
 }
 

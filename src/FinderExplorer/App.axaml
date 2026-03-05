@@ -14,6 +14,7 @@
         <SimpleTheme />
         <StyleInclude Source="avares://FinderExplorer/Styles/LiquidGlass.axaml" />
         <StyleInclude Source="avares://FinderExplorer/Styles/NavigationToolbar.axaml" />
+        <StyleInclude Source="avares://FinderExplorer/Styles/ContentArea.axaml" />
     </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>

@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FinderExplorer.Views.Dialogs.TextInputDialog"
+        Width="460"
+        SizeToContent="Height"
+        MinHeight="220"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="Full">
+    <Border Padding="16"
+            Background="{DynamicResource App.Theme.BackgroundBrush}">
+        <StackPanel Spacing="12">
+            <TextBlock x:Name="MessageText"
+                       TextWrapping="Wrap"
+                       FontSize="13"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+
+            <TextBox x:Name="InputBox"
+                     MinWidth="380"
+                     TextWrapping="NoWrap" />
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+                <Button x:Name="CancelButton"
+                        MinWidth="90"
+                        IsCancel="True"
+                        Click="CancelButton_Click" />
+                <Button x:Name="ConfirmButton"
+                        MinWidth="90"
+                        IsDefault="True"
+                        Click="ConfirmButton_Click" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

@@ -4,31 +4,86 @@
              xmlns:conv="using:FinderExplorer.Converters"
              x:Class="FinderExplorer.Views.Controls.FileList"
              x:DataType="vm:MainWindowViewModel">
-    
+
     <UserControl.Resources>
         <conv:IconKeyConverter x:Key="IconKeyConverter" />
         <conv:UriToBitmapConverter x:Key="UriToBitmap" />
     </UserControl.Resources>
 
     <Grid RowDefinitions="36,*,28" Margin="0,0,0,0">
-        <!-- Columns Header -->
-        <Border Grid.Row="0" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Margin="12,0,12,0">
-            <Grid ColumnDefinitions="Auto, *, 60, 140, 100, 100">
-                <!-- Space for Icon -->
-                <Border Grid.Column="0" Width="36" />
-                <TextBlock Grid.Column="1" Text="Name" Classes="col-header" />
-                <TextBlock Grid.Column="2" Text="File tag" Classes="col-header" />
-                <TextBlock Grid.Column="3" Text="Date modified" Classes="col-header" />
-                <TextBlock Grid.Column="4" Text="Type" Classes="col-header" />
-                <TextBlock Grid.Column="5" Text="Size" Classes="col-header" />
+        <Border Grid.Row="0" Classes="details-header-strip" Margin="8,0,8,0">
+            <Grid ColumnDefinitions="28,*,64,140,100,100">
+                <Border Grid.Column="0" />
+
+                <Button Grid.Column="1"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortByName}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Name">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0" Text="Name" Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortByName}" />
+                    </Grid>
+                </Button>
+
+                <TextBlock Grid.Column="2"
+                           Text="File tag"
+                           Classes="details-header-label"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           Margin="8,0,0,0"
+                           VerticalAlignment="Center" />
+
+                <Button Grid.Column="3"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortByModified}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Modified">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0" Text="Date modified" Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortByModified}" />
+                    </Grid>
+                </Button>
+
+                <Button Grid.Column="4"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortByType}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Type">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0" Text="Type" Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortByType}" />
+                    </Grid>
+                </Button>
+
+                <Button Grid.Column="5"
+                        Classes="details-header-btn"
+                        Classes.active="{CompiledBinding IsSortBySize}"
+                        Command="{CompiledBinding SortByColumnCommand}"
+                        CommandParameter="Size">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBlock Grid.Column="0" Text="Size" Classes="details-header-label" />
+                        <PathIcon Grid.Column="1"
+                                  Classes="details-header-sort"
+                                  Data="{CompiledBinding SortDirectionIconKey, Converter={StaticResource IconKeyConverter}}"
+                                  IsVisible="{CompiledBinding IsSortBySize}" />
+                    </Grid>
+                </Button>
             </Grid>
         </Border>
 
-        <!-- List Content -->
         <ListBox Grid.Row="1"
                  ItemsSource="{CompiledBinding Items}"
                  SelectedItem="{CompiledBinding SelectedItem}"
-                 Margin="12,4,12,0"
+                 Margin="8,4,8,0"
                  UseLayoutRounding="True"
                  PointerPressed="FileList_PointerPressed">
             <ListBox.ItemTemplate>
@@ -36,40 +91,53 @@
                     <Border Classes="file-row"
                             DoubleTapped="FileItem_DoubleTapped"
                             PointerPressed="FileItem_PointerPressed">
-                        <Grid ColumnDefinitions="36, *, 60, 140, 100, 100">
-                            <Grid Grid.Column="0" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center" UseLayoutRounding="True">
+                        <Grid ColumnDefinitions="28,*,64,140,100,100">
+                            <Grid Grid.Column="0"
+                                  Width="16"
+                                  Height="16"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  UseLayoutRounding="True">
                                 <Image Source="{CompiledBinding IconImagePath, Converter={StaticResource UriToBitmap}}"
-                                       Width="16" Height="16"
+                                       Width="16"
+                                       Height="16"
                                        Stretch="Uniform"
                                        RenderOptions.BitmapInterpolationMode="None"
                                        IsVisible="{CompiledBinding HasImageIcon}" />
                                 <PathIcon Data="{CompiledBinding IconResourceKey, Converter={StaticResource IconKeyConverter}}"
-                                          Width="16" Height="16"
+                                          Width="16"
+                                          Height="16"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
                                           Foreground="{DynamicResource App.Theme.IconBaseBrush}"
                                           IsVisible="{CompiledBinding !HasImageIcon}" />
                             </Grid>
-                            <TextBlock Grid.Column="1" Text="{CompiledBinding Name}" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="2" Text="" FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="3" Text="{CompiledBinding Modified, StringFormat='{}{0:dd MMMM yyyy}'}" FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="4" Text="{CompiledBinding Icon}" FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="5" Text="{CompiledBinding SizeDisplay}" FontSize="12"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Column="1"
+                                       Text="{CompiledBinding Name}"
+                                       Classes="file-cell-primary"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2" Text="" Classes="file-cell-secondary" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{CompiledBinding Modified, StringFormat='{}{0:dd MMMM yyyy}'}"
+                                       Classes="file-cell-secondary" />
+                            <TextBlock Grid.Column="4"
+                                       Text="{CompiledBinding Icon}"
+                                       Classes="file-cell-secondary" />
+                            <TextBlock Grid.Column="5"
+                                       Text="{CompiledBinding SizeDisplay}"
+                                       Classes="file-cell-secondary" />
                         </Grid>
                     </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <!-- Status Bar -->
         <Border Grid.Row="2" Background="Transparent" Padding="12,0">
-            <TextBlock Text="{CompiledBinding ItemCountText}" FontSize="11"
-                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+            <TextBlock Text="{CompiledBinding ItemCountText}"
+                       FontSize="11"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       VerticalAlignment="Center" />
         </Border>
     </Grid>
 

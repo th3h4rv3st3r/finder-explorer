@@ -19,62 +19,645 @@
         <KeyBinding Gesture="Alt+Right" Command="{Binding NavigateForwardCommand}" />
         <KeyBinding Gesture="Alt+Up" Command="{Binding NavigateUpCommand}" />
         <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding CreateNewFolderCommand}" />
         <KeyBinding Gesture="Enter" Command="{Binding OpenSelectedItemCommand}" />
         <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedItemCommand}" />
+        <KeyBinding Gesture="Ctrl+X" Command="{Binding CutSelectedItemCommand}" />
+        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopySelectedItemCommand}" />
+        <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteFromClipboardCommand}" />
+        <KeyBinding Gesture="F2" Command="{Binding RenameSelectedItemCommand}" />
         <KeyBinding Gesture="Ctrl+T" Command="{Binding NewTabCommand}" />
         <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseCurrentTabCommand}" />
+        <KeyBinding Gesture="Escape" Command="{Binding CloseSettingsCommand}" />
     </Window.KeyBindings>
 
     <Window.Resources>
         <conv:UriToBitmapConverter x:Key="UriToBitmap" />
         <conv:FolderOrFileIconConverter x:Key="FolderOrFileIconConverter" />
-        <conv:BoolToGridLengthConverter x:Key="BoolToSplitterWidth" TrueLength="1" FalseLength="0" />
-        <conv:BoolToGridLengthConverter x:Key="BoolToDetailsWidth" TrueLength="320" FalseLength="0" />
     </Window.Resources>
 
-    <Grid x:Name="RootGrid" RowDefinitions="44, 48, *" Background="{DynamicResource App.Theme.BackgroundBrush}">
-        <Border Grid.Row="0" IsHitTestVisible="False">
-            <!-- Drag region -->
-        </Border>
-
-        <controls:TabBar Grid.Row="0" />
-        <controls:NavigationBar Grid.Row="1" />
-
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300" />
-                <ColumnDefinition Width="2" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="{CompiledBinding IsDetailsPaneVisible, Converter={StaticResource BoolToSplitterWidth}}" />
-                <ColumnDefinition Width="{CompiledBinding IsDetailsPaneVisible, Converter={StaticResource BoolToDetailsWidth}}" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0" Background="{DynamicResource App.Theme.Sidebar.BackgroundBrush}">
-                <controls:Sidebar />
+    <Grid>
+        <Grid x:Name="RootGrid" RowDefinitions="44,48,*" Background="{DynamicResource App.Theme.BackgroundBrush}">
+            <Border Grid.Row="0" IsHitTestVisible="False">
+                <!-- Drag region -->
             </Border>
 
-            <GridSplitter Grid.Column="1" Background="Transparent" Width="2" ResizeDirection="Columns" HorizontalAlignment="Center" />
+            <controls:TabBar Grid.Row="0" />
+            <controls:NavigationBar Grid.Row="1" />
+            <Grid Grid.Row="2" RowDefinitions="44,*">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{CompiledBinding SidebarPaneWidth, Mode=TwoWay}"
+                                      MinWidth="220"
+                                      MaxWidth="420" />
+                    <ColumnDefinition Width="2" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="{CompiledBinding DetailsSplitterWidth}" />
+                    <ColumnDefinition Width="{CompiledBinding DetailsPaneWidth, Mode=TwoWay}"
+                                      MinWidth="260"
+                                      MaxWidth="560" />
+                </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="2" Background="{DynamicResource App.Theme.FileArea.BackgroundBrush}">
-                <controls:FileList />
-            </Border>
+                <Border Grid.RowSpan="2"
+                        Grid.Column="0"
+                        Background="{DynamicResource App.Theme.Sidebar.BackgroundBrush}">
+                    <controls:Sidebar />
+                </Border>
 
-            <Border Grid.Column="3"
-                    Background="{DynamicResource ControlStrokeColorDefaultBrush}"
-                    Width="1"
-                    IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
-            <GridSplitter Grid.Column="3"
-                          Background="Transparent"
-                          Width="5"
-                          ResizeDirection="Columns"
-                          HorizontalAlignment="Center"
-                          IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+                <GridSplitter Grid.RowSpan="2"
+                              Grid.Column="1"
+                              Background="Transparent"
+                              Width="2"
+                              ResizeDirection="Columns"
+                              HorizontalAlignment="Center" />
 
-            <Border Grid.Column="4"
-                    Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
-                    IsVisible="{CompiledBinding IsDetailsPaneVisible}">
-                <controls:DetailsPane />
-            </Border>
+                <controls:ContentToolbar Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="3" />
+
+                <Border Grid.Row="1"
+                        Grid.Column="2"
+                        Background="{DynamicResource App.Theme.FileArea.BackgroundBrush}">
+                    <controls:FileList />
+                </Border>
+
+                <Border Grid.Row="1"
+                        Grid.Column="3"
+                        Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        Width="1"
+                        IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+                <GridSplitter Grid.Row="1"
+                              Grid.Column="3"
+                              Background="Transparent"
+                              Width="5"
+                              ResizeDirection="Columns"
+                              HorizontalAlignment="Center"
+                              IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+
+                <Border Grid.Row="1"
+                        Grid.Column="4"
+                        Background="{DynamicResource App.Theme.InfoPane.BackgroundBrush}"
+                        IsVisible="{CompiledBinding IsDetailsPaneVisible}">
+                    <controls:DetailsPane />
+                </Border>
+            </Grid>
         </Grid>
+
+        <Border IsVisible="{CompiledBinding IsSettingsOpen}" Classes="settings-modal-overlay" />
+
+        <Border IsVisible="{CompiledBinding IsSettingsOpen}"
+                Classes="settings-modal-shell"
+                Width="1120"
+                Height="700"
+                MaxWidth="1140"
+                MaxHeight="760"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Grid RowDefinitions="Auto,*" ColumnDefinitions="260,*">
+                <Border Grid.Row="0"
+                        Grid.ColumnSpan="2"
+                        Padding="16,12"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Settings"
+                                   Classes="settings-page-title"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="toolbar-btn"
+                                Width="32"
+                                Height="32"
+                                Command="{CompiledBinding CloseSettingsCommand}"
+                                ToolTip.Tip="Close">
+                            <PathIcon Data="{DynamicResource Icon.Close}"
+                                      Width="12"
+                                      Height="12" />
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Classes="settings-nav-pane"
+                        Padding="8,10">
+                    <StackPanel Spacing="2">
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsGeneralSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="general">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsGeneralSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="General" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsAppearanceSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="appearance">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsAppearanceSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.Appearance}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Appearance" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsLayoutSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="layout">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsLayoutSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.Layout}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Layout" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsFilesFoldersSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="files_folders">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsFilesFoldersSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.FilesFolders}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Files &amp; folders" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsActionsSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="actions">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsActionsSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.KeyboardActions}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Actions" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsAdvancedSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="advanced">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsAdvancedSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.Advanced}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Advanced" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="sidebar-item"
+                                Classes.selected="{CompiledBinding IsSettingsAboutSection}"
+                                Command="{CompiledBinding SelectSettingsSectionCommand}"
+                                CommandParameter="about">
+                            <Grid ColumnDefinitions="6,Auto,*" Height="28">
+                                <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsAboutSection}" />
+                                <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.About}" Width="16" Height="16"
+                                          Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="About" Margin="12,0,12,2" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,18,24,24" Spacing="14">
+                        <TextBlock Text="{CompiledBinding SettingsSectionTitle}"
+                                   Classes="settings-group-title" />
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsGeneralSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Startup}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Open Files on Windows startup"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsRunAtStartup}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.RunInBackground}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Leave app running in the background when window closes"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsRunInBackground}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.OpenItems}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Show Files icon in the System Tray" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Not implemented yet in native tray bridge." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsShowTrayIcon}"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Language}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Language" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Available languages for this build." />
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2"
+                                                  SelectedItem="{CompiledBinding SettingsLanguage}"
+                                                  MinWidth="170">
+                                            <x:String>pt-BR</x:String>
+                                            <x:String>en_GB</x:String>
+                                        </ComboBox>
+                                    </Grid>
+                                </Border>
+
+                                <TextBlock Text="Customize the right click context menu"
+                                           Classes="settings-subsection-title"
+                                           Margin="0,4,0,0" />
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.ContextMenu}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Context menu customization" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Temporarily disabled: menu editor not implemented." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <TextBlock Text="Scrolling"
+                                           Classes="settings-subsection-title"
+                                           Margin="0,4,0,0" />
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Scroll}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Smooth scrolling"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsSmoothScrolling}" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsAppearanceSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Theme}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Theme" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Theme selector will be enabled after theme service migration." />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="System"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.BackdropMaterial}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Backdrop" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Backdrop style is controlled by the current window material profile." />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="Mica Alt"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.BGColor}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Background color" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Accent color picker is planned for a future build." />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="Not available"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsLayoutSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.DualPane}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Show details pane by default"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsShowDetailsPane}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.OpenItems}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Open folders in new tab by default" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Not implemented yet." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.LayoutSync}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Restore tab session on startup" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled until session persistence is implemented." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Statusbar}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Show status center in content area" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled in current build." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsFilesFoldersSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.BackgroundFolder}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Show hidden files and folders"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsShowHiddenFiles}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Connections}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Use Everything for search acceleration"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsUseEverythingSearch}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Thumbnails}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Use GPU acceleration for thumbnails"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsUseGpuAcceleration}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.FileExt}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Show file extensions in list" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled: extension visibility toggle not implemented yet." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.FileOpen}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Use Finder Explorer as Open/Save dialog" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled until integration is implemented." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsActionsSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.ContextMenu}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Customize right-click actions" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled: action mapper is not implemented yet." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.DeleteConfirm}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Confirm before delete"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsConfirmBeforeDelete}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Click}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Single click to open files" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled in this version." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsAdvancedSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.FilesDefault}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Set Finder Explorer as the default file manager"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsDefaultFileManager}" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.OpenWith}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Use IFEO explorer redirect (administrator)" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled by default. Enable manually when this feature is exposed." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.OverflowMore}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Show flatten options" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Disabled: not implemented in this build." />
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="False"
+                                                      IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="settings-section-card"
+                                IsVisible="{CompiledBinding IsSettingsAboutSection}">
+                            <StackPanel Spacing="12">
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.SettingsFile}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Finder Explorer" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="{CompiledBinding AboutVersionText, StringFormat='Version {0}'}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.GitHub}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{CompiledBinding AboutAuthorText, StringFormat='by {0}'}" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="Finder Explorer project maintainer" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.Language}" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="Supported languages" />
+                                            <TextBlock Classes="settings-option-caption"
+                                                       Text="{CompiledBinding SupportedLanguagesText}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                        <Border IsVisible="{CompiledBinding HasSettingsOperationNotice}"
+                                Background="{DynamicResource SystemFillColorCautionBackgroundBrush}"
+                                BorderBrush="{DynamicResource SystemFillColorCautionBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10">
+                            <TextBlock Text="{CompiledBinding SettingsOperationNotice}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

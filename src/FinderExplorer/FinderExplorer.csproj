@@ -15,7 +15,7 @@
     <Authors>th3h4rv3st3r</Authors>
     <Company>th3h4rv3st3r</Company>
     <Product>Finder Explorer</Product>
-    <Description>A modern file manager for Windows 11 inspired by macOS Tahoe Finder</Description>
+    <Description>A modern file manager fork from Files Community for Windows 11 inspired by macOS Tahoe Finder and modded from WinUI 3 to Avalonia UI 11, and Core in c++</Description>
     <Copyright>Copyright © th3h4rv3st3r 2025-2026</Copyright>
     <Version>0.1.0</Version>
   </PropertyGroup>

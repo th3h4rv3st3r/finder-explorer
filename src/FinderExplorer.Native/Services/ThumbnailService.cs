@@ -26,9 +26,11 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
     private readonly LruCache<string, ThumbnailData> _memCache = new(MemoryCacheCapacity);
     private readonly string _diskCacheDir;
     private readonly SemaphoreSlim _throttle = new(Environment.ProcessorCount * 2);
+    private readonly ISettingsService _settings;
 
-    public ThumbnailService()
+    public ThumbnailService(ISettingsService settings)
     {
+        _settings = settings;
         _diskCacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "FinderExplorer", "thumbs-v2");
@@ -43,6 +45,9 @@ public sealed class ThumbnailService : IThumbnailService, IDisposable
         string path, int sizePx, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
+
+        if (!_settings.Current.UseGpuThumbnails)
+            return null;
 
         // 1. Memory cache hit
         string cacheKey = $"{ThumbnailCacheVersion}|{path}|{sizePx}";

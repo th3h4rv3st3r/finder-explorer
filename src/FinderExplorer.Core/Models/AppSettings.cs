@@ -44,6 +44,18 @@ public sealed class AppSettings
     /// <summary>Ascending sort order when true.</summary>
     public bool SortAscending { get; set; } = true;
 
+    /// <summary>Restores details pane visibility on app startup.</summary>
+    public bool ShowDetailsPane { get; set; } = true;
+
+    /// <summary>UI language code. Supported: pt-BR, en_GB.</summary>
+    public string LanguageCode { get; set; } = "pt-BR";
+
+    /// <summary>Enables smoother list scrolling behavior.</summary>
+    public bool SmoothScrolling { get; set; } = true;
+
+    /// <summary>When true, asks for confirmation before moving items to Recycle Bin.</summary>
+    public bool ConfirmBeforeDelete { get; set; } = true;
+
     // -----------------------------------------------------------------------
     // Hot Open (spring-loaded folders — open on drag-hover)
     // -----------------------------------------------------------------------

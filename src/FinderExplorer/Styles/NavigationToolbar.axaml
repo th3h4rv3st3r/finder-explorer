@@ -21,7 +21,9 @@
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="{TemplateBinding CornerRadius}">
-                    <ContentPresenter HorizontalAlignment="Center"
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}" />
                 </Border>
@@ -63,20 +65,22 @@
     <!-- Omnibar mode buttons: command palette + search -->
     <Style Selector="Button.omnibar-mode-btn">
         <Setter Property="Focusable" Value="False" />
-        <Setter Property="Width" Value="46" />
-        <Setter Property="Height" Value="34" />
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="17" />
+        <Setter Property="CornerRadius" Value="16" />
         <Setter Property="Foreground" Value="{DynamicResource App.Theme.IconBaseBrush}" />
         <Setter Property="Template">
             <ControlTemplate>
                 <Border x:Name="Bd"
                         Background="{TemplateBinding Background}"
                         CornerRadius="{TemplateBinding CornerRadius}">
-                    <ContentPresenter HorizontalAlignment="Center"
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}" />
                 </Border>
@@ -120,7 +124,9 @@
                 <Border x:Name="Bd"
                         Background="{TemplateBinding Background}"
                         CornerRadius="{TemplateBinding CornerRadius}">
-                    <ContentPresenter HorizontalAlignment="Center"
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center"
                                       VerticalAlignment="Center" />
                 </Border>
             </ControlTemplate>
@@ -153,7 +159,9 @@
                         Background="{TemplateBinding Background}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         Padding="{TemplateBinding Padding}">
-                    <ContentPresenter HorizontalAlignment="Left"
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Left"
                                       VerticalAlignment="Center"
                                       Foreground="{TemplateBinding Foreground}"
                                       TextBlock.TextTrimming="CharacterEllipsis" />
@@ -167,6 +175,37 @@
     </Style>
 
     <Style Selector="Button.omnibar-crumb-btn:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.omnibar-crumb-chevron-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.omnibar-crumb-chevron-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.omnibar-crumb-chevron-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
     </Style>
 

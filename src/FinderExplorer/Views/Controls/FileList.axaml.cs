@@ -81,10 +81,14 @@ namespace FinderExplorer.Views.Controls
             if (vm.SelectedItem is not null)
             {
                 items.Add(new MenuItem { Header = "Open", Command = vm.OpenSelectedItemCommand });
+                items.Add(new MenuItem { Header = "Cut", Command = vm.CutSelectedItemCommand });
+                items.Add(new MenuItem { Header = "Copy", Command = vm.CopySelectedItemCommand });
+                items.Add(new MenuItem { Header = "Rename", Command = vm.RenameSelectedItemCommand });
                 items.Add(new MenuItem { Header = "Delete", Command = vm.DeleteSelectedItemCommand });
             }
             else
             {
+                items.Add(new MenuItem { Header = "Paste", Command = vm.PasteFromClipboardCommand });
                 items.Add(new MenuItem { Header = "Refresh", Command = vm.RefreshCommand });
                 items.Add(new MenuItem { Header = "New tab", Command = vm.NewTabCommand });
             }

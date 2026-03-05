@@ -17,8 +17,8 @@
                 <Button Classes="sidebar-item" ToolTip.Tip="Home" Command="{CompiledBinding SidebarNavigateCommand}" CommandParameter="{CompiledBinding SidebarHome}" Classes.selected="{CompiledBinding SidebarHome.IsSelected}">
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarHome.IsSelected}" />
-                        <Image Grid.Column="1" Source="avares://FinderExplorer/Assets/Icons/Home.png" Width="16" Height="16"
-                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                        <Image Grid.Column="1" Source="{CompiledBinding SidebarHome.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
+                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="None"/>
                         <TextBlock Grid.Column="2" Text="Home" VerticalAlignment="Center"
                                    Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
                     </Grid>
@@ -45,7 +45,7 @@
                                 <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
                                     <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
                                     <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
-                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="None" />
                                     <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
                                                Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                     <PathIcon Grid.Column="3" Classes="pin-icon" Data="{DynamicResource Icon.Files.App.ThemedIcons.Actions.Pinned.12}" Width="10" Height="10"/>
@@ -76,7 +76,7 @@
                                 <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                                     <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSelected}" />
                                     <Image Grid.Column="1" Source="{CompiledBinding IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
-                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                                           Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="None" />
                                     <TextBlock Grid.Column="2" Text="{CompiledBinding Label}" FontSize="14" VerticalAlignment="Center"
                                                Margin="12,0,12,2" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                 </Grid>
@@ -99,7 +99,7 @@
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNetwork.IsSelected}" />
                         <Image Grid.Column="1" Source="{CompiledBinding SidebarNetwork.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
-                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="None" />
                         <TextBlock Grid.Column="2" Text="Network" FontSize="14" VerticalAlignment="Center"
                                    Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
                     </Grid>
@@ -119,36 +119,12 @@
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
                         <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding SidebarNextcloud.IsSelected}" />
                         <Image Grid.Column="1" Source="{CompiledBinding SidebarNextcloud.IconPath, Converter={StaticResource UriToBitmap}}" Width="16" Height="16"
-                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                               Margin="8,0,0,0" RenderOptions.BitmapInterpolationMode="None" />
                         <TextBlock Grid.Column="2" Text="Nextcloud" FontSize="14" VerticalAlignment="Center"
                                    Margin="12,0,12,2" TextTrimming="CharacterEllipsis" />
                     </Grid>
                 </Button>
 
-                <!-- Tags Section -->
-                <ToggleButton Classes="sidebar-section" IsChecked="{CompiledBinding IsTagsExpanded}">
-                    <Grid ColumnDefinitions="6,*,28" Height="28" HorizontalAlignment="Stretch">
-                        <TextBlock Grid.Column="1" Classes="section-label" Text="Tags" VerticalAlignment="Center"/>
-                        <Panel Grid.Column="2" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronDown}" IsVisible="{CompiledBinding !IsTagsExpanded}"/>
-                            <PathIcon Classes="section-chevron" Data="{DynamicResource Icon.ChevronUp}" IsVisible="{CompiledBinding IsTagsExpanded}"/>
-                        </Panel>
-                    </Grid>
-                </ToggleButton>
-                <StackPanel IsVisible="{CompiledBinding IsTagsExpanded}" Spacing="0" Margin="0,2,0,12">
-                    <!-- Color Dots for Tags -->
-                    <Button Classes="sidebar-item">
-                        <Grid ColumnDefinitions="6,Auto,*,28" Height="28">
-                            <Border Grid.Column="0" Classes="sel-pill" />
-                            <Ellipse Grid.Column="1" Width="10" Height="10" Fill="{DynamicResource AccentFillColorDefaultBrush}"
-                                     Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="2" Text="Edit file tags" FontSize="14" VerticalAlignment="Center"
-                                       Margin="12,0,12,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                            <PathIcon Grid.Column="3" Data="{DynamicResource Icon.Edit}" Width="12" Height="12"
-                                      Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
-                        </Grid>
-                    </Button>
-                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
@@ -157,9 +133,12 @@
             <StackPanel Spacing="4">
                 <Border Height="1" HorizontalAlignment="Stretch" Margin="4,0"
                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1"/>
-                <Button Classes="sidebar-item" ToolTip.Tip="Settings">
+                <Button Classes="sidebar-item"
+                        Classes.selected="{CompiledBinding IsSettingsOpen}"
+                        ToolTip.Tip="Settings"
+                        Command="{CompiledBinding OpenSettingsCommand}">
                     <Grid ColumnDefinitions="6,Auto,*,Auto" Height="28">
-                        <Border Grid.Column="0" Classes="sel-pill" />
+                        <Border Grid.Column="0" Classes="sel-pill" Classes.on="{CompiledBinding IsSettingsOpen}" />
                         <PathIcon Grid.Column="1" Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General}" Width="16" Height="16"
                                   Margin="8,0,0,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="2" Text="Settings" VerticalAlignment="Center"
