@@ -5,9 +5,7 @@
              x:Class="FinderExplorer.Views.Controls.NavigationBar"
              x:DataType="vm:MainWindowViewModel">
 
-    <Border Background="{DynamicResource App.Theme.AddressBar.BackgroundBrush}"
-            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-            BorderThickness="0,0,0,1"
+    <Border Background="{DynamicResource App.Theme.BaseLayer.BackgroundBrush}"
             Padding="4,0,4,0">
         <Grid ColumnDefinitions="Auto,*,Auto" Height="48" ColumnSpacing="4">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">

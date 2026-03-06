@@ -62,11 +62,17 @@
     <SolidColorBrush x:Key="SolidBackgroundFillColorSecondaryBrush"   Color="#1C1C1C" />
 
     <!-- App-specific theme brushes (matching Files App.xaml Dark section) -->
-    <SolidColorBrush x:Key="App.Theme.BackgroundBrush"               Color="Transparent" />
-    <SolidColorBrush x:Key="App.Theme.AddressBar.BackgroundBrush"     Color="#662B2B32" />
-    <SolidColorBrush x:Key="App.Theme.Toolbar.BackgroundBrush"        Color="#08FFFFFF" />
-    <SolidColorBrush x:Key="App.Theme.Sidebar.BackgroundBrush"        Color="#662B2B32" />
-    <SolidColorBrush x:Key="App.Theme.FileArea.BackgroundBrush"       Color="#08FFFFFF" />
+    
+    <!-- GRUPO 1: Aba Ativa + Sidebar + NavigationBar (Atrás do Search) + Fundo atrás do caixote -->
+    <SolidColorBrush x:Key="App.Theme.BaseLayer.BackgroundBrush"      Color="#a8282832" />
+    
+    <!-- GRUPO 2: Fundo Interno do Caixotão de Arquivos (que inclui a Toolbar de ações de arquivo) -->
+    <SolidColorBrush x:Key="App.Theme.SurfaceLayer.BackgroundBrush"   Color="#08FFFFFF" />
+    
+    <!-- GRUPO 3: Fundo isolado da Barra Superior (Onde ficam as abas inativas) -->
+    <SolidColorBrush x:Key="App.Theme.TopBar.BackgroundBrush"         Color="Transparent" />
+    
+    <!-- Secondary/Info Panel brushes -->
     <SolidColorBrush x:Key="App.Theme.FileArea.SecondaryBackgroundBrush" Color="#06FFFFFF" />
     <SolidColorBrush x:Key="App.Theme.InfoPane.BackgroundBrush"       Color="#08FFFFFF" />
 

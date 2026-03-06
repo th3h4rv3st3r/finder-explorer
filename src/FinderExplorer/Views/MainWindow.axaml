@@ -12,7 +12,8 @@
         Background="Transparent"
         TransparencyLevelHint="Transparent"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaTitleBarHeightHint="46">
+        ExtendClientAreaTitleBarHeightHint="46"
+        ExtendClientAreaChromeHints="NoChrome">
 
     <Window.KeyBindings>
         <KeyBinding Gesture="Alt+Left" Command="{Binding NavigateBackCommand}" />
@@ -30,6 +31,15 @@
         <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseCurrentTabCommand}" />
         <KeyBinding Gesture="Space" Command="{Binding OpenQuickLookCommand}" />
         <KeyBinding Gesture="Escape" Command="{Binding CloseSettingsCommand}" />
+        
+        <!-- Global File Operations -->
+        <KeyBinding Gesture="Ctrl+A" Command="{Binding SelectAllItemsCommand}" />
+        <KeyBinding Gesture="Escape" Command="{Binding ClearSelectionCommand}" />
+        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopySelectedItemCommand}" />
+        <KeyBinding Gesture="Ctrl+X" Command="{Binding CutSelectedItemCommand}" />
+        <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteFromClipboardCommand}" />
+        <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedItemCommand}" />
+        <KeyBinding Gesture="Shift+Delete" Command="{Binding DeleteSelectedItemCommand}" />
     </Window.KeyBindings>
 
     <Window.Resources>
@@ -38,12 +48,52 @@
     </Window.Resources>
 
     <Grid>
+
         <Grid x:Name="RootGrid" RowDefinitions="44,48,*" Background="{DynamicResource App.Theme.BackgroundBrush}">
             <Border Grid.Row="0" IsHitTestVisible="False">
                 <!-- Drag region -->
             </Border>
 
             <controls:TabBar Grid.Row="0" />
+            
+            <StackPanel Grid.Row="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,0,0,0"
+                        Orientation="Horizontal"
+                        Spacing="0"
+                        Height="28"
+                        Panel.ZIndex="100">
+                <Button Classes="caption-btn" ToolTip.Tip="Minimize"
+                        Click="MinimizeButton_Click">
+                    <Path Data="M0,5 H10"
+                          Stroke="{DynamicResource TextFillColorSecondaryBrush}"
+                          StrokeThickness="1"
+                          UseLayoutRounding="True"
+                          Width="10" Height="10" Stretch="None"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Button>
+                <Button Classes="caption-btn" ToolTip.Tip="Maximize / Restore"
+                        Click="MaximizeButton_Click">
+                    <Path x:Name="MaximizeIcon"
+                          Data="M0.5,0.5 H9.5 V9.5 H0.5 Z"
+                          Stroke="{DynamicResource TextFillColorSecondaryBrush}"
+                          StrokeThickness="1"
+                          UseLayoutRounding="True"
+                          Width="10" Height="10" Stretch="None"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Button>
+                <Button Classes="caption-btn caption-btn-close" ToolTip.Tip="Close"
+                        Click="CloseButton_Click">
+                    <Path Data="M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5"
+                          Stroke="{DynamicResource TextFillColorSecondaryBrush}"
+                          StrokeThickness="1"
+                          UseLayoutRounding="True"
+                          Width="10" Height="10" Stretch="None"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Button>
+            </StackPanel>
+
             <controls:NavigationBar Grid.Row="1" />
             <!--
                 Layout principal: 3 colunas (Sidebar | SidebarSplitter | Content*).
@@ -51,10 +101,10 @@
                 Isso elimina completamente o bug de coluna fantasma quando o details
                 pane está oculto — não há colunas zero-width no grid externo.
             -->
-            <Grid Grid.Row="2" RowDefinitions="44,*">
+            <Grid Grid.Row="2" RowDefinitions="44,*" Background="{DynamicResource App.Theme.BaseLayer.BackgroundBrush}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="{Binding SidebarPaneWidth, Mode=TwoWay}"
-                                      MinWidth="220"
+                                      MinWidth="180"
                                       MaxWidth="420" />
                     <ColumnDefinition Width="2" />
                     <ColumnDefinition Width="*" />
@@ -62,8 +112,7 @@
 
                 <!-- Sidebar -->
                 <Border Grid.RowSpan="2"
-                        Grid.Column="0"
-                        Background="{DynamicResource App.Theme.Sidebar.BackgroundBrush}">
+                        Grid.Column="0">
                     <controls:Sidebar />
                 </Border>
 
@@ -75,53 +124,57 @@
                               ResizeDirection="Columns"
                               HorizontalAlignment="Center" />
 
-                <!-- Toolbar: row 0, abrange toda a content area -->
-                <controls:ContentToolbar Grid.Row="0" Grid.Column="2" />
+                <!-- Overflow fix: Background dark Mica layer + Inner frosted white app-surface layer -->
+                <Border Grid.Row="0"
+                        Grid.RowSpan="2"
+                        Grid.Column="2"
+                        Margin="8,4,8,8"
+                        Background="{DynamicResource App.Theme.AppSurface.BaseBackgroundBrush}"
+                        CornerRadius="10">
+                    <Border Classes="app-surface-panel" Margin="0">
+                        <Grid RowDefinitions="44,*">
+                            <!-- Toolbar sem bordas próprias -->
+                            <controls:ContentToolbar Grid.Row="0" />
 
-                <!--
-                    Content area (row 1): grid aninhado com FileList e DetailsPane.
-                    Col 0 (*): FileList — sempre preenche o espaço disponível.
-                    Col 1 (Auto): borda + splitter invisível de 5px para resize.
-                    Col 2 (DetailsPaneWidth): DetailsPane — quando IsVisible=false
-                             a coluna some porque o conteúdo não tem MinWidth forçado.
-                    O VM já controla DetailsPaneWidth=0 e DetailsPaneMinWidth=0
-                    quando IsDetailsPaneVisible=false.
-                -->
-                <Grid Grid.Row="1"
-                      Grid.Column="2"
-                      Margin="8,0,10,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="{Binding DetailsPaneWidth, Mode=TwoWay}"
-                                          MinWidth="{CompiledBinding DetailsPaneMinWidth}"
-                                          MaxWidth="1800" />
-                    </Grid.ColumnDefinitions>
+                            <!-- Separador toolbar/conteúdo -->
+                            <Border Grid.Row="0"
+                                    VerticalAlignment="Bottom"
+                                    Height="1"
+                                    Background="{DynamicResource ControlStrokeColorDefaultBrush}" />
 
-                    <!-- FileList: col 0, fill completo -->
-                    <Border Grid.Column="0"
-                            Classes="app-surface-panel">
-                        <controls:FileList />
+                            <!-- FileList + DetailsPane -->
+                            <Grid Grid.Row="1" ColumnSpacing="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="{CompiledBinding DetailsPaneGridLength}"
+                                                      MinWidth="{CompiledBinding DetailsPaneMinWidth}"
+                                                      MaxWidth="900" />
+                                </Grid.ColumnDefinitions>
+
+                                <controls:FileList Grid.Column="0" />
+
+                                <!-- Separador vertical FileList/DetailsPane -->
+                                <Border Grid.Column="1"
+                                        Width="1"
+                                        Background="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                        IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+
+                                <GridSplitter Grid.Column="1"
+                                              Background="Transparent"
+                                              Width="6"
+                                              ResizeDirection="Columns"
+                                              ResizeBehavior="PreviousAndNext"
+                                              HorizontalAlignment="Stretch"
+                                              IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+
+                                <controls:DetailsPane Grid.Column="2"
+                                                      x:Name="DetailsPaneBorder"
+                                                      IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
+                            </Grid>
+                        </Grid>
                     </Border>
-
-                    <!-- Splitter: visível apenas quando details pane está aberto.
-                         Width=6 invisível sobrepõe a borda direita do FileList.
-                         Quando IsVisible=false, col 1 (Auto) colapsa para 0. -->
-                    <GridSplitter Grid.Column="1"
-                                  Background="Transparent"
-                                  Width="6"
-                                  ResizeDirection="Columns"
-                                  ResizeBehavior="PreviousAndNext"
-                                  HorizontalAlignment="Stretch"
-                                  IsVisible="{CompiledBinding IsDetailsPaneVisible}" />
-
-                    <!-- Details pane: col 2 -->
-                    <Border Grid.Column="2"
-                            Classes="app-surface-panel"
-                            IsVisible="{CompiledBinding IsDetailsPaneVisible}">
-                        <controls:DetailsPane />
-                    </Border>
-                </Grid>
+                </Border>
             </Grid>
         </Grid>
 
@@ -292,6 +345,18 @@
                                         <ToggleSwitch Grid.Column="2"
                                                       IsChecked="{CompiledBinding SettingsShowTrayIcon}"
                                                       IsEnabled="False" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="settings-option-card">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <PathIcon Classes="settings-option-icon"
+                                                  Data="{DynamicResource Icon.Files.App.ThemedIcons.Settings.General.FileOpen}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="Restore previous tabs on startup"
+                                                   VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="2"
+                                                      IsChecked="{CompiledBinding SettingsRestorePreviousTabs}" />
                                     </Grid>
                                 </Border>
 

@@ -68,6 +68,26 @@ public sealed class AppSettings
     public int MediaPreviewVolume { get; set; } = 100;
 
     // -----------------------------------------------------------------------
+    // Layout Widths
+    // -----------------------------------------------------------------------
+
+    /// <summary>Width of the sidebar pane.</summary>
+    public double SidebarPaneWidth { get; set; } = 240;
+
+    /// <summary>Width of the details pane.</summary>
+    public double DetailsPaneWidth { get; set; } = 320;
+
+    // -----------------------------------------------------------------------
+    // Startup Behavior
+    // -----------------------------------------------------------------------
+
+    /// <summary>Restore previously opened tabs on startup.</summary>
+    public bool RestorePreviousTabs { get; set; } = false;
+
+    /// <summary>List of previous tab paths to restore on startup.</summary>
+    public List<string> PreviousTabs { get; set; } = [];
+
+    // -----------------------------------------------------------------------
     // Hot Open (spring-loaded folders — open on drag-hover)
     // -----------------------------------------------------------------------
 

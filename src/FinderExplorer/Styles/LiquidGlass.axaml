@@ -310,15 +310,15 @@
     </Style>
     <Style Selector="Border.tab-header:pointerover">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="Border.tab-header.selected">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.BaseLayer.BackgroundBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="Border.tab-header.selected:pointerover">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.BaseLayer.BackgroundBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
     <Style Selector="Button.tab-title-btn">
@@ -385,14 +385,14 @@
     <Style Selector="Button.tab-close-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
     </Style>
-    <Style Selector="Path.tab-close-path">
-        <Setter Property="Stroke" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Style Selector="PathIcon.tab-close-icon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
     </Style>
-    <Style Selector="Border.tab-header.selected Path.tab-close-path">
-        <Setter Property="Stroke" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Style Selector="Border.tab-header.selected PathIcon.tab-close-icon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     </Style>
-    <Style Selector="Button.tab-close-btn:pointerover Path.tab-close-path">
-        <Setter Property="Stroke" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Style Selector="Button.tab-close-btn:pointerover PathIcon.tab-close-icon">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════════════
@@ -749,6 +749,114 @@
 
     <Style Selector="Border.settings-section-card ComboBox">
         <Setter Property="MinHeight" Value="32" />
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         CAPTION BUTTONS  Button.caption-btn
+         Mesmos tokens do sidebar selected: ControlFillColorDefault + ButtonBorderBrush
+         Tamanho: 46×32 (igual ao título bar height), ícone 10px
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="Button.caption-btn">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="Bd"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        BorderThickness="1"
+                        CornerRadius="0">
+                    <Border.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="Background" Duration="0:0:0.15" />
+                            <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                        </Transitions>
+                    </Border.Transitions>
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.caption-btn:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
+    </Style>
+    <Style Selector="Button.caption-btn:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
+    </Style>
+    <!-- Close button: hover vermelho WinUI -->
+    <Style Selector="Button.caption-btn-close:pointerover /template/ Border#Bd">
+        <Setter Property="Background" Value="#C42B1C" />
+        <Setter Property="BorderBrush" Value="#C42B1C" />
+    </Style>
+    <Style Selector="Button.caption-btn-close:pressed /template/ Border#Bd">
+        <Setter Property="Background" Value="#A12018" />
+        <Setter Property="BorderBrush" Value="#A12018" />
+    </Style>
+    <!-- Ícone do close fica branco no hover -->
+    <Style Selector="Button.caption-btn-close:pointerover Path">
+        <Setter Property="Stroke" Value="#FFFFFF" />
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         FILE SELECT CHECKBOX — accent color, sem label
+    ══════════════════════════════════════════════════════════════════ -->
+    <Style Selector="CheckBox.file-select-checkbox">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Margin" Value="0,0,0,0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Background="{TemplateBinding Background}">
+                    <Border x:Name="CheckboxBorder"
+                            Background="Transparent"
+                            BorderBrush="{DynamicResource TextFillColorTertiaryBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Width="18"
+                            Height="18"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <!-- Bulletproof Segoe Fluent Icon Checkmark -->
+                        <TextBlock x:Name="CheckGlyph"
+                                   Text="&#xE73E;"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Symbols"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   Foreground="Black"
+                                   Opacity="0"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,0,0" />
+                    </Border>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Hide completely until Hovered or Selected (handled by ContentArea.axaml Opacity) -->
+
+    <Style Selector="CheckBox.file-select-checkbox:pointerover /template/ Border#CheckboxBorder">
+        <Setter Property="BorderBrush" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <Style Selector="CheckBox.file-select-checkbox:checked /template/ Border#CheckboxBorder">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+    </Style>
+    <Style Selector="CheckBox.file-select-checkbox:checked /template/ TextBlock#CheckGlyph">
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
     <!-- ══════════════════════════════════════════════════════════════════

@@ -10,10 +10,10 @@
         <conv:IconKeyConverter x:Key="IconKeyConverter" />
     </UserControl.Resources>
 
-    <Border Background="{DynamicResource App.Theme.Sidebar.BackgroundBrush}"
+    <Border Background="Transparent"
             BorderBrush="Transparent"
             BorderThickness="0"
-            Padding="6,10,6,0">
+            Padding="6,10,140,0">
         <Grid ColumnDefinitions="Auto,*" Height="38">
             <Button Grid.Column="0" Classes="toolbar-btn" Width="34" Height="34"
                     VerticalAlignment="Bottom" ToolTip.Tip="Tab actions">
@@ -48,38 +48,30 @@
                                 <Border Classes="tab-header" Classes.selected="{CompiledBinding IsSelected}">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
                                         <Grid Grid.Column="0"
-                                              Width="16"
-                                              Height="16"
+                                              Width="16" Height="16"
                                               Margin="10,0,0,0"
                                               VerticalAlignment="Center">
                                             <Image Source="{CompiledBinding IconImagePath, Converter={StaticResource UriToBitmap}}"
-                                                   Width="16"
-                                                   Height="16"
+                                                   Width="16" Height="16"
                                                    IsVisible="{CompiledBinding HasImageIcon}"
                                                    RenderOptions.BitmapInterpolationMode="HighQuality" />
                                             <PathIcon Data="{CompiledBinding IconResourceKey, Converter={StaticResource IconKeyConverter}}"
-                                                      Width="16"
-                                                      Height="16"
+                                                      Width="16" Height="16"
                                                       IsVisible="{CompiledBinding !HasImageIcon}"
                                                       Foreground="#FFDDAA33" />
                                         </Grid>
-
                                         <Button Grid.Column="1" Classes="tab-title-btn" Content="{CompiledBinding Title}"
                                                 Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SelectTabCommand}"
                                                 CommandParameter="{CompiledBinding}" ToolTip.Tip="{CompiledBinding Path}" />
-
                                         <Button Grid.Column="2" Classes="tab-close-btn" ToolTip.Tip="Close tab (Ctrl+W)"
                                                 Command="{CompiledBinding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseTabCommand}"
                                                 CommandParameter="{CompiledBinding}">
-                                            <Path Classes="tab-close-path"
-                                                  Width="12"
-                                                  Height="12"
-                                                  Data="M2,2 L10,10 M10,2 L2,10"
-                                                  Stroke="{DynamicResource TextFillColorSecondaryBrush}"
-                                                  StrokeThickness="1.4"
-                                                  StrokeLineCap="Round"
-                                                  VerticalAlignment="Center"
-                                                  HorizontalAlignment="Center" />
+                                            <PathIcon Classes="tab-close-icon"
+                                                      Width="10" Height="10"
+                                                      Data="{DynamicResource Icon.TabClose}"
+                                                      Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Center" />
                                         </Button>
                                     </Grid>
                                 </Border>

@@ -13,6 +13,8 @@
         <conv:UriToBitmapConverter x:Key="UriToBitmap" />
     </UserControl.Resources>
 
+
+
     <Grid RowDefinitions="36,*,28"
           Margin="8,0,0,0">
         <Border Grid.Row="0"
@@ -20,7 +22,7 @@
                 Margin="0,0,12,0">
             <Grid x:Name="HeaderColumnsGrid">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="28" MinWidth="28" MaxWidth="28" />
+                    <ColumnDefinition Width="48" MinWidth="48" MaxWidth="48" />
                     <ColumnDefinition Width="{CompiledBinding NameColumnWidth, Mode=TwoWay}" MinWidth="160" />
                     <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
                     <ColumnDefinition Width="{CompiledBinding DateModifiedColumnWidth, Mode=TwoWay}" MinWidth="90" />
@@ -144,6 +146,9 @@
                      Classes="file-list-listbox"
                      ItemsSource="{CompiledBinding Items}"
                      SelectedItem="{CompiledBinding SelectedItem}"
+                     SelectionMode="Multiple"
+                     AutoScrollToSelectedItem="False"
+                     DragDrop.AllowDrop="True"
                      HorizontalAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      UseLayoutRounding="True"
@@ -167,13 +172,14 @@
                 </ListBox.Template>
 
                 <ListBox.ItemContainerTheme>
-                    <ControlTheme TargetType="ListBoxItem">
+                    <ControlTheme TargetType="ListBoxItem" x:DataType="vm:FileItemViewModel" x:CompileBindings="False">
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                         <Setter Property="Padding" Value="0" />
                         <Setter Property="Margin" Value="0" />
                         <Setter Property="MinHeight" Value="0" />
                         <Setter Property="HorizontalAlignment" Value="Stretch" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Background" Value="{x:Null}" />
                         <Setter Property="Template">
                             <ControlTemplate>
                                 <ContentPresenter Name="PART_ContentPresenter"
@@ -189,28 +195,28 @@
 
                 <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="vm:FileItemViewModel">
-                        <Border Classes="file-row"
-                                Padding="0"
-                                HorizontalAlignment="Stretch"
-                                Width="{Binding #HeaderColumnsGrid.Bounds.Width}"
-                                DoubleTapped="FileItem_DoubleTapped"
-                                PointerPressed="FileItem_PointerPressed">
-                            <Grid HorizontalAlignment="Stretch">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28" MinWidth="28" MaxWidth="28" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.NameColumnWidth}" MinWidth="160" />
-                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.DateModifiedColumnWidth}" MinWidth="90" />
-                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.TypeColumnWidth}" MinWidth="56" />
-                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
-                                    <ColumnDefinition Width="{Binding #FileListRoot.DataContext.SizeColumnWidth}" MinWidth="48" />
-                                    <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
+                        <Grid HorizontalAlignment="Stretch"
+                              Width="{Binding #HeaderColumnsGrid.Bounds.Width}"
+                              DoubleTapped="FileItem_DoubleTapped"
+                              PointerPressed="FileItem_PointerPressed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="48" MinWidth="48" MaxWidth="48" />
+                                <ColumnDefinition Width="{Binding #FileListRoot.DataContext.NameColumnWidth}" MinWidth="160" />
+                                <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                <ColumnDefinition Width="{Binding #FileListRoot.DataContext.DateModifiedColumnWidth}" MinWidth="90" />
+                                <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                <ColumnDefinition Width="{Binding #FileListRoot.DataContext.TypeColumnWidth}" MinWidth="56" />
+                                <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                <ColumnDefinition Width="{Binding #FileListRoot.DataContext.SizeColumnWidth}" MinWidth="48" />
+                                <ColumnDefinition Width="6" MinWidth="6" MaxWidth="6" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-                                <Border Grid.ColumnSpan="10"
-                                        Classes="file-row-pill" />
+                            <Border Grid.Column="0" Grid.ColumnSpan="8"
+                                    Classes="file-row" />
+
+                            <Border Grid.Column="0" Grid.ColumnSpan="8"
+                                    Classes="file-row-pill" />
 
                                 <Grid Grid.Column="0"
                                       Width="{Binding #FileListRoot.DataContext.FileListIconSize}"
@@ -223,15 +229,24 @@
                                            Height="{Binding #FileListRoot.DataContext.FileListIconSize}"
                                            Stretch="Uniform"
                                            RenderOptions.BitmapInterpolationMode="None"
-                                           IsVisible="{CompiledBinding HasImageIcon}" />
+                                           IsVisible="{CompiledBinding HasImageIcon}"
+                                           Classes="file-item-icon" />
                                     <PathIcon Data="{CompiledBinding IconResourceKey, Converter={StaticResource IconKeyConverter}}"
                                               Width="{Binding #FileListRoot.DataContext.FileListIconSize}"
                                               Height="{Binding #FileListRoot.DataContext.FileListIconSize}"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Foreground="{DynamicResource App.Theme.IconBaseBrush}"
-                                              IsVisible="{CompiledBinding !HasImageIcon}" />
+                                              IsVisible="{CompiledBinding !HasImageIcon}"
+                                              Classes="file-item-icon" />
                                 </Grid>
+
+                                <!-- Selection CheckBox (overlaps icon, visible on hover/selected) -->
+                                <CheckBox Grid.Column="0"
+                                          Classes="file-select-checkbox"
+                                          IsChecked="{CompiledBinding IsSelected, Mode=TwoWay}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
 
                                 <TextBlock Grid.Column="1"
                                            Text="{CompiledBinding DisplayName}"
@@ -258,8 +273,7 @@
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Left"
                                            Margin="8,0,0,0" />
-                            </Grid>
-                        </Border>
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

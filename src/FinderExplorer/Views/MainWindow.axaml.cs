@@ -15,6 +15,18 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // Sync DetailsPane actual width back to VM so GridLength stays up to date after splitter drag
+        DetailsPaneBorder.SizeChanged += (_, e) =>
+        {
+            if (DataContext is MainWindowViewModel vm && vm.IsDetailsPaneVisible)
+            {
+                var w = e.NewSize.Width;
+                if (w > 0 && Math.Abs(w - vm.DetailsPaneWidth) > 0.5)
+                    vm.DetailsPaneWidth = w;
+            }
+        };
+
         Opened += (_, _) =>
         {
             ApplyMicaAltBackdrop();
@@ -29,8 +41,29 @@ public partial class MainWindow : Window
         this.GetObservable(WindowStateProperty).Subscribe(new WindowStateObserver(this));
     }
 
+    private void MinimizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void MaximizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        SyncMaximizeIcon();
+    }
+
+    private void CloseButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => Close();
+
+    private void SyncMaximizeIcon()
+    {
+        if (MaximizeIcon == null) return;
+        MaximizeIcon.Data = WindowState == WindowState.Maximized
+            ? Avalonia.Media.Geometry.Parse("M2.5,0.5 H9.5 V7.5 H7.5 M7.5,2.5 V9.5 H0.5 V2.5 Z")
+            : Avalonia.Media.Geometry.Parse("M0.5,0.5 H9.5 V9.5 H0.5 Z");
+    }
+
     private void OnWindowStateChanged(WindowState state)
     {
+        SyncMaximizeIcon();
         // When maximized (fullscreen), add padding to prevent content from touching screen edges
         // This matches Files/WinUI behavior where maximized windows have a small safe area
         if (RootGrid is not null)

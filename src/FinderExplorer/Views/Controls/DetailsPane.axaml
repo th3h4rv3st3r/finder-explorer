@@ -12,7 +12,7 @@
         <conv:UriToBitmapConverter x:Key="UriToBitmap" />
     </UserControl.Resources>
 
-    <Border Margin="8"
+    <Border Margin="0"
             VerticalAlignment="Stretch"
             HorizontalAlignment="Stretch"
             Background="Transparent"

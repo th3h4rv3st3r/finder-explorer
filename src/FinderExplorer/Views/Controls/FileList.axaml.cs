@@ -3,12 +3,15 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.VisualTree;
+using Avalonia.Platform.Storage;
 using FinderExplorer.Core.Services;
 using FinderExplorer.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 
 namespace FinderExplorer.Views.Controls
 {
@@ -18,11 +21,21 @@ namespace FinderExplorer.Views.Controls
         private bool _isMarqueeSelecting;
         private Point _marqueeStart;
         private IPointer? _marqueePointer;
+        private DispatcherTimer? _autoScrollTimer;
+        private Point _currentPointerPosition;
+        private ScrollViewer? _scrollViewer;
+        private double _marqueeStartScrollOffset;
+
+        private bool _isDraggingItem;
+        private Point _dragStartPoint;
 
         public FileList()
         {
             InitializeComponent();
             _shellContextMenuService = App.Services.GetService<IShellContextMenuService>();
+
+            AddHandler(DragDrop.DragOverEvent, FileList_DragOver);
+            AddHandler(DragDrop.DropEvent, FileList_Drop);
         }
 
         private void FileItem_DoubleTapped(object? sender, TappedEventArgs e)
@@ -44,7 +57,17 @@ namespace FinderExplorer.Views.Controls
             if (!e.GetCurrentPoint(control).Properties.IsRightButtonPressed)
                 return;
 
-            vm.SelectedItem = fileItem;
+            // If the right-clicked item is not already selected, select only it
+            if (!fileItem.IsSelected)
+                vm.SelectedItem = fileItem;
+
+            // Collect all selected paths for the context menu
+            var selectedPaths = vm.Items
+                .Where(i => i.IsSelected)
+                .Select(i => i.FullPath)
+                .ToList();
+            if (selectedPaths.Count == 0)
+                selectedPaths.Add(fileItem.FullPath);
 
             // For Nextcloud items or when shell menu fails, always use managed menu
             if (fileItem.IsNextcloudItem)
@@ -53,7 +76,7 @@ namespace FinderExplorer.Views.Controls
             }
             else
             {
-                ShowNativeContextMenu([fileItem.FullPath], e);
+                ShowNativeContextMenu(selectedPaths, e);
             }
 
             e.Handled = true;
@@ -97,6 +120,8 @@ namespace FinderExplorer.Views.Controls
             if (e.Source is Avalonia.Visual sourceVisual &&
                 sourceVisual.FindAncestorOfType<ListBoxItem>() is not null)
             {
+                _isDraggingItem = true;
+                _dragStartPoint = point.Position;
                 return;
             }
 
@@ -105,20 +130,30 @@ namespace FinderExplorer.Views.Controls
             e.Handled = true;
         }
 
-        private void FileList_PointerMoved(object? sender, PointerEventArgs e)
+        private async void FileList_PointerMoved(object? sender, PointerEventArgs e)
         {
-            if (!_isMarqueeSelecting || _marqueePointer is null || _marqueePointer != e.Pointer)
-                return;
-
             var current = ClampToListBounds(e.GetPosition(ItemsList));
-            var rect = CreateSelectionRect(_marqueeStart, current);
-            UpdateMarqueeVisual(rect);
-            UpdateMarqueeSelection(rect);
-            e.Handled = true;
+
+            if (_isMarqueeSelecting && _marqueePointer != null && _marqueePointer == e.Pointer)
+            {
+                _currentPointerPosition = current;
+                UpdateMarqueeFromPointer();
+                e.Handled = true;
+            }
+            else if (_isDraggingItem && e.Pointer.Type == PointerType.Mouse && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                var diff = current - _dragStartPoint;
+                if (Math.Abs(diff.X) > 3 || Math.Abs(diff.Y) > 3)
+                {
+                    _isDraggingItem = false;
+                    await StartDragAsync(e);
+                }
+            }
         }
 
         private void FileList_PointerReleased(object? sender, PointerReleasedEventArgs e)
         {
+            _isDraggingItem = false;
             if (!_isMarqueeSelecting || _marqueePointer is null || _marqueePointer != e.Pointer)
                 return;
 
@@ -129,14 +164,113 @@ namespace FinderExplorer.Views.Controls
 
         private void FileList_PointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
         {
+            _isDraggingItem = false;
             EndMarqueeSelection();
+        }
+
+        private async Task StartDragAsync(PointerEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm) return;
+            var selected = vm.Items.Where(i => i.IsSelected).ToList();
+            if (selected.Count == 0 && vm.SelectedItem != null)
+                selected.Add(vm.SelectedItem);
+            if (selected.Count == 0) return;
+
+            var data = new DataObject();
+            data.Set(DataFormats.Files, selected.Select(i => i.FullPath));
+
+            await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy | DragDropEffects.Move);
+        }
+
+        private void FileList_DragOver(object? sender, DragEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel) return;
+
+            if (e.Data.Contains(DataFormats.Files))
+            {
+                e.DragEffects = e.KeyModifiers.HasFlag(KeyModifiers.Control)
+                    ? DragDropEffects.Copy
+                    : DragDropEffects.Move;
+                e.Handled = true;
+            }
+            else
+            {
+                e.DragEffects = DragDropEffects.None;
+            }
+        }
+
+        private async void FileList_Drop(object? sender, DragEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm) return;
+
+            if (!e.Data.Contains(DataFormats.Files)) return;
+
+            var files = e.Data.GetFiles()?.Select(f => f.TryGetLocalPath()).Where(p => p != null).ToArray();
+            if (files == null || files.Length == 0) return;
+
+            var targetPath = vm.CurrentPath;
+
+            // If dropping onto a folder, target is that folder
+            if (e.Source is Control ctrl && ctrl.DataContext is FileItemViewModel item && item.IsDirectory)
+            {
+                targetPath = item.FullPath;
+            }
+
+            if (string.IsNullOrEmpty(targetPath)) return;
+
+            var isCopy = e.DragEffects.HasFlag(DragDropEffects.Copy) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+
+            var fileSystem = App.Services.GetRequiredService<IFileSystemService>();
+            foreach (var file in files)
+            {
+                if (file == null || string.Equals(file, targetPath, StringComparison.OrdinalIgnoreCase)) continue;
+                
+                try
+                {
+                    if (isCopy)
+                    {
+                        await fileSystem.CopyAsync(file, targetPath);
+                    }
+                    else
+                    {
+                        await fileSystem.MoveAsync(file, targetPath);
+                    }
+                }
+                catch
+                {
+                    // Ignore individual file move/copy errors
+                }
+            }
+
+            if (vm.RefreshCommand.CanExecute(null))
+            {
+                await vm.RefreshCommand.ExecuteAsync(null);
+            }
         }
 
         private void BeginMarqueeSelection(Point start, IPointer pointer)
         {
+            if (_scrollViewer == null)
+                _scrollViewer = ItemsList.FindDescendantOfType<ScrollViewer>();
+
+            if (_autoScrollTimer == null)
+            {
+                _autoScrollTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(16)
+                };
+                _autoScrollTimer.Tick += AutoScrollTimer_Tick;
+            }
+
             _isMarqueeSelecting = true;
             _marqueePointer = pointer;
             _marqueeStart = start;
+            _currentPointerPosition = start;
+
+            if (_scrollViewer != null)
+                _marqueeStartScrollOffset = _scrollViewer.Offset.Y;
+            else
+                _marqueeStartScrollOffset = 0;
 
             MarqueeSelectionBox.IsVisible = true;
             Canvas.SetLeft(MarqueeSelectionBox, start.X);
@@ -145,13 +279,68 @@ namespace FinderExplorer.Views.Controls
             MarqueeSelectionBox.Height = 0;
 
             pointer.Capture(ItemsList);
+            _autoScrollTimer.Start();
         }
 
         private void EndMarqueeSelection()
         {
+            _autoScrollTimer?.Stop();
             _isMarqueeSelecting = false;
             _marqueePointer = null;
             MarqueeSelectionBox.IsVisible = false;
+        }
+
+        private void UpdateMarqueeFromPointer()
+        {
+            if (!_isMarqueeSelecting) return;
+
+            var current = ClampToListBounds(_currentPointerPosition);
+            var adjustedStart = _marqueeStart;
+            
+            if (_scrollViewer != null)
+            {
+                double offsetDiff = _scrollViewer.Offset.Y - _marqueeStartScrollOffset;
+                adjustedStart = new Point(_marqueeStart.X, _marqueeStart.Y - offsetDiff);
+            }
+            
+            var rect = CreateSelectionRect(adjustedStart, current);
+            UpdateMarqueeVisual(rect);
+            UpdateMarqueeSelection(rect);
+        }
+
+        private void AutoScrollTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!_isMarqueeSelecting || _scrollViewer == null) return;
+            
+            double scrollZoneHeight = 40; 
+            double maxScrollSpeed = 25; 
+            
+            double scrollAmount = 0;
+            
+            if (_currentPointerPosition.Y < scrollZoneHeight)
+            {
+                double factor = 1.0 - Math.Max(0, _currentPointerPosition.Y / scrollZoneHeight);
+                scrollAmount = -maxScrollSpeed * factor;
+            }
+            else if (_currentPointerPosition.Y > ItemsList.Bounds.Height - scrollZoneHeight)
+            {
+                double distanceToBottom = ItemsList.Bounds.Height - _currentPointerPosition.Y;
+                double factor = 1.0 - Math.Max(0, distanceToBottom / scrollZoneHeight);
+                scrollAmount = maxScrollSpeed * factor;
+            }
+            
+            if (Math.Abs(scrollAmount) > 0.5)
+            {
+                double currentOffset = _scrollViewer.Offset.Y;
+                double maxOffset = Math.Max(0, _scrollViewer.Extent.Height - _scrollViewer.Viewport.Height);
+                double newOffset = Math.Clamp(currentOffset + scrollAmount, 0, maxOffset);
+                
+                if (Math.Abs(newOffset - currentOffset) > 0.1)
+                {
+                    _scrollViewer.Offset = new Avalonia.Vector(_scrollViewer.Offset.X, newOffset);
+                    UpdateMarqueeFromPointer();
+                }
+            }
         }
 
         private void UpdateMarqueeVisual(Rect rect)
@@ -167,30 +356,49 @@ namespace FinderExplorer.Views.Controls
             if (DataContext is not MainWindowViewModel vm)
                 return;
 
-            var selected = ItemsList
+            var intersectedItems = ItemsList
                 .GetVisualDescendants()
                 .OfType<ListBoxItem>()
                 .Where(item => item.IsVisible)
                 .Select(item => new
                 {
                     Item = item,
-                    Rect = GetItemRectRelativeToList(item)
+                    FileRow = item.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Classes.Contains("file-row"))
+                })
+                .Where(x => x.FileRow != null)
+                .Select(x => new
+                {
+                    x.Item,
+                    Rect = GetItemRectRelativeToList(x.FileRow!)
                 })
                 .Where(x => x.Rect.HasValue && selectionRect.Intersects(x.Rect.Value))
                 .OrderBy(x => x.Rect!.Value.Y)
                 .Select(x => x.Item.DataContext as FileItemViewModel)
-                .FirstOrDefault(item => item is not null);
+                .Where(item => item is not null)
+                .Cast<FileItemViewModel>()
+                .ToList();
 
-            vm.SelectedItem = selected;
+            var intersectedSet = new HashSet<FileItemViewModel>(intersectedItems);
+
+            foreach (var item in vm.Items)
+            {
+                bool shouldBeSelected = intersectedSet.Contains(item);
+                if (item.IsSelected != shouldBeSelected)
+                {
+                    item.IsSelected = shouldBeSelected;
+                }
+            }
+
+            vm.SelectedItem = intersectedItems.FirstOrDefault();
         }
 
-        private Rect? GetItemRectRelativeToList(ListBoxItem item)
+        private Rect? GetItemRectRelativeToList(Avalonia.Visual itemVisual)
         {
-            var topLeft = item.TranslatePoint(default, ItemsList);
+            var topLeft = itemVisual.TranslatePoint(default, ItemsList);
             if (topLeft is null)
                 return null;
 
-            return new Rect(topLeft.Value, item.Bounds.Size);
+            return new Rect(topLeft.Value, itemVisual.Bounds.Size);
         }
 
         private Point ClampToListBounds(Point point)

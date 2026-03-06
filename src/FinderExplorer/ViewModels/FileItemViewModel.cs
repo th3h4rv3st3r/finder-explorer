@@ -19,6 +19,7 @@ public partial class FileItemViewModel : ObservableObject
     [ObservableProperty] private string? _iconImagePath;
     [ObservableProperty] private bool _isNextcloudItem;
     [ObservableProperty] private bool _showFileExtension = true;
+    [ObservableProperty] private bool _isSelected;
 
     public string Extension => IsDirectory ? string.Empty : Path.GetExtension(Name);
     public string DisplayName => !IsDirectory && !ShowFileExtension

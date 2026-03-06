@@ -176,6 +176,9 @@ public partial class MainWindowViewModel : ObservableObject
     private bool _settingsDefaultFileManager;
 
     [ObservableProperty]
+    private bool _settingsRestorePreviousTabs;
+
+    [ObservableProperty]
     private string _settingsLanguage = "pt-BR";
 
     [ObservableProperty]
@@ -219,7 +222,7 @@ public partial class MainWindowViewModel : ObservableObject
     private bool _isDetailsPaneVisible = true;
 
     [ObservableProperty]
-    private double _sidebarPaneWidth = 300;
+    private GridLength _sidebarPaneWidth = new(240, GridUnitType.Pixel);
 
     [ObservableProperty]
     private double _detailsPaneWidth = 320;
@@ -434,6 +437,9 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsSettingsCloudSection => string.Equals(SettingsSection, "cloud", StringComparison.OrdinalIgnoreCase);
     public bool IsSettingsAboutSection => string.Equals(SettingsSection, "about", StringComparison.OrdinalIgnoreCase);
     public double DetailsPaneMinWidth => IsDetailsPaneVisible ? 220 : 0;
+    public GridLength DetailsPaneGridLength => IsDetailsPaneVisible
+        ? new GridLength(DetailsPaneWidth, GridUnitType.Pixel)
+        : new GridLength(0);
     public bool IsNcSetupStepOverview => NcSetupStep == 0;
     public bool IsNcSetupStepUrl => NcSetupStep == 1;
     public bool IsNcSetupStepCredentials => NcSetupStep == 2;
@@ -490,12 +496,32 @@ public partial class MainWindowViewModel : ObservableObject
         InitializeSidebar();
         InitializeNetworkLocations();
 
-        var initialTab = CreateTab(userProfile);
-        initialTab.IsSelected = true;
-        Tabs.Add(initialTab);
-        SelectedTab = initialTab;
+        if (SettingsRestorePreviousTabs && _settingsService.Current.PreviousTabs is { Count: > 0 } prevTabs)
+        {
+            ExplorerTabViewModel? lastTab = null;
+            foreach (var path in prevTabs)
+            {
+                var tab = CreateTab(path);
+                Tabs.Add(tab);
+                lastTab = tab;
+            }
 
-        _ = NavigateToPathAsync(initialTab.Path, addToHistory: false, forceReload: true);
+            if (lastTab != null)
+            {
+                lastTab.IsSelected = true;
+                SelectedTab = lastTab;
+                _ = NavigateToPathAsync(lastTab.Path, addToHistory: false, forceReload: true);
+            }
+        }
+        else
+        {
+            var initialTab = CreateTab(userProfile);
+            initialTab.IsSelected = true;
+            Tabs.Add(initialTab);
+            SelectedTab = initialTab;
+
+            _ = NavigateToPathAsync(initialTab.Path, addToHistory: false, forceReload: true);
+        }
     }
 
     partial void OnSelectedItemChanged(FileItemViewModel? value)
@@ -620,9 +646,30 @@ public partial class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsLayoutColumns));
     }
 
+    partial void OnSidebarPaneWidthChanged(GridLength value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.SidebarPaneWidth = value.Value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnDetailsPaneWidthChanged(double value)
+    {
+        OnPropertyChanged(nameof(DetailsPaneGridLength));
+
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.DetailsPaneWidth = value;
+        _ = SaveSettingsAsync();
+    }
+
     partial void OnIsDetailsPaneVisibleChanged(bool value)
     {
         OnPropertyChanged(nameof(DetailsPaneMinWidth));
+        OnPropertyChanged(nameof(DetailsPaneGridLength));
 
         if (value)
         {
@@ -633,7 +680,6 @@ public partial class MainWindowViewModel : ObservableObject
         }
         else
         {
-            DetailsPaneWidth = 0;
             DetailsSplitterWidth = 0;
         }
 
@@ -686,6 +732,15 @@ public partial class MainWindowViewModel : ObservableObject
             return;
 
         _settingsService.Current.MinimizeToTray = value;
+        _ = SaveSettingsAsync();
+    }
+
+    partial void OnSettingsRestorePreviousTabsChanged(bool value)
+    {
+        if (_suppressSettingsSync)
+            return;
+
+        _settingsService.Current.RestorePreviousTabs = value;
         _ = SaveSettingsAsync();
     }
 
@@ -798,7 +853,11 @@ public partial class MainWindowViewModel : ObservableObject
             IsSortAscending = settings.SortAscending;
             IsDetailsPaneVisible = settings.ShowDetailsPane;
 
+            SidebarPaneWidth = new GridLength(settings.SidebarPaneWidth, GridUnitType.Pixel);
+            DetailsPaneWidth = settings.DetailsPaneWidth;
+
             SettingsRunInBackground = settings.MinimizeToTray;
+            SettingsRestorePreviousTabs = settings.RestorePreviousTabs;
             SettingsRunAtStartup = settings.RunAtStartup || _lifecycleService.IsRunAtStartupEnabled();
             SettingsShowTrayIcon = false; // not wired yet in native tray bridge
             SettingsSmoothScrolling = settings.SmoothScrolling;
@@ -887,6 +946,9 @@ public partial class MainWindowViewModel : ObservableObject
         _settingsService.Current.LanguageCode = NormalizeLanguageCode(SettingsLanguage);
         _settingsService.Current.SmoothScrolling = SettingsSmoothScrolling;
         _settingsService.Current.RunAtStartup = SettingsRunAtStartup;
+        _settingsService.Current.RestorePreviousTabs = SettingsRestorePreviousTabs;
+
+        _settingsService.Current.PreviousTabs = Tabs.Select(t => t.Path).ToList();
 
         try
         {
@@ -1281,14 +1343,39 @@ public partial class MainWindowViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void SelectAllItems()
+    {
+        foreach (var item in Items)
+            item.IsSelected = true;
+    }
+
+    [RelayCommand]
+    private void ClearSelection()
+    {
+        foreach (var item in Items)
+            item.IsSelected = false;
+        SelectedItem = null;
+    }
+
+    [RelayCommand]
+    private void InvertSelection()
+    {
+        foreach (var item in Items)
+            item.IsSelected = !item.IsSelected;
+    }
+
     [RelayCommand(CanExecute = nameof(HasSelectedItem))]
     private void CutSelectedItem()
     {
-        if (SelectedItem is null)
+        var selected = Items.Where(i => i.IsSelected).ToList();
+        if (selected.Count == 0 && SelectedItem is not null)
+            selected.Add(SelectedItem);
+        if (selected.Count == 0)
             return;
 
         _clipboardPaths.Clear();
-        _clipboardPaths.Add(SelectedItem.FullPath);
+        _clipboardPaths.AddRange(selected.Select(i => i.FullPath));
         _clipboardOperation = ClipboardOperation.Cut;
         OnPropertyChanged(nameof(HasClipboardItems));
         PasteFromClipboardCommand.NotifyCanExecuteChanged();
@@ -1297,11 +1384,14 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasSelectedItem))]
     private void CopySelectedItem()
     {
-        if (SelectedItem is null)
+        var selected = Items.Where(i => i.IsSelected).ToList();
+        if (selected.Count == 0 && SelectedItem is not null)
+            selected.Add(SelectedItem);
+        if (selected.Count == 0)
             return;
 
         _clipboardPaths.Clear();
-        _clipboardPaths.Add(SelectedItem.FullPath);
+        _clipboardPaths.AddRange(selected.Select(i => i.FullPath));
         _clipboardOperation = ClipboardOperation.Copy;
         OnPropertyChanged(nameof(HasClipboardItems));
         PasteFromClipboardCommand.NotifyCanExecuteChanged();
@@ -1721,7 +1811,73 @@ public partial class MainWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasSelectedItem))]
     private async Task DeleteSelectedItemAsync()
     {
-        await DeleteItemAsync(SelectedItem);
+        var selected = Items.Where(i => i.IsSelected).ToList();
+        if (selected.Count == 0 && SelectedItem is not null)
+            selected.Add(SelectedItem);
+        if (selected.Count == 0)
+            return;
+
+        if (SettingsConfirmBeforeDelete)
+        {
+            var message = selected.Count == 1
+                ? $"Move \"{selected[0].Name}\" to Recycle Bin?"
+                : $"Move {selected.Count} items to Recycle Bin?";
+
+            var confirmDialog = new ConfirmationDialog(
+                title: "Delete items",
+                message: message,
+                primaryButtonText: "Delete",
+                closeButtonText: "Cancel",
+                isPrimaryDestructive: true);
+
+            var owner = TryGetOwnerWindow();
+            if (owner is null)
+                return;
+
+            var confirmed = await confirmDialog.ShowDialog<bool>(owner);
+            if (!confirmed)
+                return;
+        }
+
+        try
+        {
+            // Handle Nextcloud items separately
+            var ncItems = selected.Where(i => i.IsNextcloudItem).ToList();
+            var localItems = selected.Where(i => !i.IsNextcloudItem).ToList();
+
+            foreach (var item in ncItems)
+            {
+                var remotePath = item.NextcloudRemotePath;
+                if (!string.IsNullOrWhiteSpace(remotePath))
+                    await _nextcloud.DeleteAsync(remotePath);
+            }
+
+            if (localItems.Count > 0)
+            {
+                var deleted = false;
+                if (OperatingSystem.IsWindows())
+                {
+                    var paths = localItems.Select(i => i.FullPath).ToArray();
+                    var hr = NativeBridge.Shell_DeleteItems(paths, paths.Length, TryGetOwnerWindowHandle(), recycle: true);
+                    if (hr == OperationCanceledHResult)
+                        return;
+                    deleted = hr >= 0;
+                }
+
+                if (!deleted)
+                {
+                    foreach (var item in localItems)
+                        await _fileSystem.DeleteAsync(item.FullPath);
+                }
+            }
+        }
+        catch
+        {
+            return;
+        }
+
+        SelectedItem = null;
+        await LoadDirectoryAsync();
     }
 
     [RelayCommand]
@@ -2075,6 +2231,7 @@ public partial class MainWindowViewModel : ObservableObject
         SetSelectedTab(tab);
 
         await NavigateToPathAsync(tab.Path, addToHistory: false, forceReload: true);
+        _ = SaveSettingsAsync();
     }
 
     [RelayCommand]
@@ -2108,6 +2265,7 @@ public partial class MainWindowViewModel : ObservableObject
         SetSelectedTab(nextTab);
 
         await NavigateToPathAsync(nextTab.Path, addToHistory: false, forceReload: true);
+        _ = SaveSettingsAsync();
     }
 
     [RelayCommand]
@@ -2131,6 +2289,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         SetSelectedTab(keep);
         await NavigateToPathAsync(keep.Path, addToHistory: false, forceReload: true);
+        _ = SaveSettingsAsync();
     }
 
     private async Task NavigateToPathAsync(string path, bool addToHistory, bool forceReload = false)
@@ -2174,6 +2333,8 @@ public partial class MainWindowViewModel : ObservableObject
         UpdateWindowTitle();
         UpdateNavigationState();
         UpdateDetailsState();
+
+        _ = SaveSettingsAsync();
     }
 
     private void UpdateBreadcrumbs()

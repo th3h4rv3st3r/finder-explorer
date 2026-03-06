@@ -56,7 +56,7 @@
     <Style Selector="Border.omnibar-shell">
         <Setter Property="Height" Value="38" />
         <Setter Property="CornerRadius" Value="19" />
-        <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="2,0,2,0" />
