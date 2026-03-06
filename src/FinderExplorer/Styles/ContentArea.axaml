@@ -72,7 +72,7 @@
     </Style>
 
     <Style Selector="Button.commandbar-primary-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
     </Style>
 
@@ -124,7 +124,7 @@
     </Style>
 
     <Style Selector="Button.commandbar-icon-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
     </Style>
 
@@ -181,7 +181,7 @@
     </Style>
 
     <Style Selector="Button.commandbar-overflow-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderBrush}" />
     </Style>
 
@@ -207,7 +207,7 @@
     <Style Selector="Button.view-layout-btn">
         <Setter Property="Height" Value="74" />
         <Setter Property="Padding" Value="8,10" />
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
@@ -244,7 +244,7 @@
 
     <Style Selector="GridSplitter.details-column-splitter:pointerover">
         <Setter Property="Opacity" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="GridSplitter.details-column-splitter:pressed">
@@ -525,7 +525,7 @@
     </Style>
 
     <Style Selector="ListBoxItem:pointerover Border.file-row">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="Border.file-row-pill">

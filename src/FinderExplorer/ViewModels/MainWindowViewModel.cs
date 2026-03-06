@@ -2646,6 +2646,10 @@ public partial class MainWindowViewModel : ObservableObject
 
         try
         {
+            // Debounce: wait 150ms before trying to generate the preview.
+            // If the user's selection changes rapidly, this task gets cancelled and we skip the heavy load.
+            await Task.Delay(150, ct);
+
             string? localPath;
             string? textPreviewContent = null;
             if (item.IsNextcloudItem)

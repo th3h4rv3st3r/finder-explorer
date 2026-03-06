@@ -44,6 +44,24 @@ public partial class MainWindow : Window
     private void MinimizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         => WindowState = WindowState.Minimized;
 
+    private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(this);
+        if (point.Properties.IsLeftButtonPressed)
+        {
+            if (e.ClickCount >= 2)
+            {
+                WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+                SyncMaximizeIcon();
+                e.Handled = true;
+            }
+            else
+            {
+                BeginMoveDrag(e);
+            }
+        }
+    }
+
     private void MaximizeButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;

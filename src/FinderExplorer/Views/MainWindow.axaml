@@ -46,18 +46,15 @@
         <conv:UriToBitmapConverter x:Key="UriToBitmap" />
         <conv:FolderOrFileIconConverter x:Key="FolderOrFileIconConverter" />
     </Window.Resources>
-
+    
     <Grid>
 
         <Grid x:Name="RootGrid" RowDefinitions="44,48,*" Background="{DynamicResource App.Theme.BackgroundBrush}">
-            <Border Grid.Row="0" IsHitTestVisible="False">
-                <!-- Drag region -->
-            </Border>
-
-            <controls:TabBar Grid.Row="0" />
-            
-            <StackPanel Grid.Row="0"
-                        HorizontalAlignment="Right"
+            <!-- The containing grid catches unhandled clicks for drag/maximize -->
+            <Grid Grid.Row="0" Background="Transparent" PointerPressed="TitleBar_PointerPressed">
+                <controls:TabBar Margin="0,0,160,0" />
+                
+                <StackPanel HorizontalAlignment="Right"
                         VerticalAlignment="Top"
                         Margin="0,0,0,0"
                         Orientation="Horizontal"
@@ -93,7 +90,9 @@
                           HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Button>
             </StackPanel>
+            </Grid>
 
+            <!-- Navigation Bar/Search (Row 1) -->
             <controls:NavigationBar Grid.Row="1" />
             <!--
                 Layout principal: 3 colunas (Sidebar | SidebarSplitter | Content*).
@@ -128,7 +127,7 @@
                 <Border Grid.Row="0"
                         Grid.RowSpan="2"
                         Grid.Column="2"
-                        Margin="8,4,8,8"
+                        Margin="4,2,4,4"
                         Background="{DynamicResource App.Theme.AppSurface.BaseBackgroundBrush}"
                         CornerRadius="10">
                     <Border Classes="app-surface-panel" Margin="0">
@@ -148,8 +147,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="{CompiledBinding DetailsPaneGridLength}"
-                                                      MinWidth="{CompiledBinding DetailsPaneMinWidth}"
-                                                      MaxWidth="900" />
+                                                      MinWidth="{CompiledBinding DetailsPaneMinWidth}" />
                                 </Grid.ColumnDefinitions>
 
                                 <controls:FileList Grid.Column="0" />

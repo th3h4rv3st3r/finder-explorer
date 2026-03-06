@@ -37,7 +37,7 @@
                 <Grid Margin="0,2,0,2">
                     <!-- Hover overlay with smooth opacity transition -->
                     <Border x:Name="HoverBd"
-                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            Background="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}"
                             CornerRadius="{DynamicResource ControlCornerRadius}"
                             Opacity="0">
                         <Border.Transitions>
@@ -110,7 +110,7 @@
                 <Grid Margin="0,2,0,2">
                     <!-- Hover overlay with smooth opacity transition -->
                     <Border x:Name="HoverBd"
-                            Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                            Background="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}"
                             CornerRadius="{DynamicResource ControlCornerRadius}"
                             Opacity="0">
                         <Border.Transitions>
@@ -230,7 +230,7 @@
         </Setter>
     </Style>
     <Style Selector="Button.toolbar-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     </Style>
     <Style Selector="Button.toolbar-btn:pressed /template/ Border#Bd">
@@ -253,7 +253,7 @@
     </Style>
     <Style Selector="Slider.media-slider">
         <Setter Property="Foreground" Value="{DynamicResource MediaControlAccentBrush}" />
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
     <Style Selector="Slider.media-slider Thumb">
         <Setter Property="Background" Value="{DynamicResource MediaControlAccentBrush}" />
@@ -290,7 +290,7 @@
         <Setter Property="Transitions"><Transitions><BrushTransition Property="Background" Duration="0:0:0.1" /></Transitions></Setter>
     </Style>
     <Style Selector="Button.nav-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
     <Style Selector="Button.nav-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
@@ -309,7 +309,7 @@
         <Setter Property="CornerRadius" Value="8,8,0,0" />
     </Style>
     <Style Selector="Border.tab-header:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="Border.tab-header.selected">
@@ -380,7 +380,7 @@
         <Setter Property="IsHitTestVisible" Value="True" />
     </Style>
     <Style Selector="Button.tab-close-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
     <Style Selector="Button.tab-close-btn:pressed /template/ Border#Bd">
         <Setter Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
@@ -425,7 +425,7 @@
         </Setter>
     </Style>
     <Style Selector="Button.breadcrumb-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
     <Style Selector="Button.breadcrumb-btn:pointerover /template/ ContentPresenter#CP">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -496,7 +496,7 @@
         </Setter>
     </Style>
     <Style Selector="Border.file-row:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
     <Style Selector="ListBoxItem:selected Border.file-row">
         <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
@@ -545,7 +545,7 @@
         </Setter>
     </Style>
     <Style Selector="Button.segmented-control:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
     <Style Selector="Button.segmented-control.active">
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -579,7 +579,7 @@
         <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
     </Style>
     <Style Selector="Button.details-link:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
     </Style>
     <Style Selector="Button.details-link:pressed">

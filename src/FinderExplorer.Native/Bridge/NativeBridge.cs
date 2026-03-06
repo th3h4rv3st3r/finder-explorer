@@ -12,7 +12,7 @@ namespace FinderExplorer.Native.Bridge;
 /// Raw P/Invoke declarations for FinderExplorer.Native.Cpp.dll.
 /// Use the higher-level service wrappers in FinderExplorer.Core instead of calling these directly.
 /// </summary>
-internal static partial class NativeBridge
+public static partial class NativeBridge
 {
     private const string DllName = "FinderExplorer.Native.Cpp.dll";
 
@@ -24,7 +24,7 @@ internal static partial class NativeBridge
     /// Extracts a shell thumbnail. Returns 1 on success; outPixels must be freed with FE_FreeThumbnail.
     /// </summary>
     [LibraryImport(DllName, EntryPoint = "FE_GetThumbnail", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int GetThumbnail(
+    public static partial int GetThumbnail(
         string         path,
         int            size,
         out IntPtr     outPixels,
@@ -33,7 +33,7 @@ internal static partial class NativeBridge
 
     /// <summary>Frees a pixel buffer returned by GetThumbnail.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_FreeThumbnail")]
-    internal static partial void FreeThumbnail(IntPtr pixels);
+    public static partial void FreeThumbnail(IntPtr pixels);
 
     // -----------------------------------------------------------------------
     // Everything Search
@@ -41,18 +41,18 @@ internal static partial class NativeBridge
 
     /// <summary>Returns 1 if Everything is installed and its database is ready.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_ES_IsAvailable")]
-    internal static partial int ES_IsAvailable();
+    public static partial int ES_IsAvailable();
 
     /// <summary>
     /// Executes a search.  scope may be null.
     /// Returns result count (&lt;= maxResults), or -1 on error.
     /// </summary>
     [LibraryImport(DllName, EntryPoint = "FE_ES_Search", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int ES_Search(string query, string? scope, uint maxResults);
+    public static partial int ES_Search(string query, string? scope, uint maxResults);
 
     /// <summary>Returns the result count from the last search.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_ES_GetResultCount")]
-    internal static partial int ES_GetResultCount();
+    public static partial int ES_GetResultCount();
 
     /// <summary>
     /// Retrieves a single result by index.
@@ -61,7 +61,7 @@ internal static partial class NativeBridge
     /// Returns 1 on success, 0 if out of range.
     /// </summary>
     [LibraryImport(DllName, EntryPoint = "FE_ES_GetResult", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int ES_GetResult(
+    public static partial int ES_GetResult(
         int      index,
         Span<char> pathBuf,   // wchar_t buffer — Span<char> is blittable to wchar_t*
         int      bufLen,
@@ -71,7 +71,7 @@ internal static partial class NativeBridge
 
     /// <summary>Releases the internal Everything result set.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_ES_Reset")]
-    internal static partial void ES_Reset();
+    public static partial void ES_Reset();
 
     // -----------------------------------------------------------------------
     // Shell Operations
@@ -79,27 +79,27 @@ internal static partial class NativeBridge
 
     /// <summary>Copies items to dest via IFileOperation (shows native Explorer dialog).</summary>
     [LibraryImport(DllName, EntryPoint = "FE_Shell_CopyItems", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Shell_CopyItems(
+    public static partial int Shell_CopyItems(
         string[] sources, int count, string dest, IntPtr hwnd);
 
     /// <summary>Moves items to dest via IFileOperation.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_Shell_MoveItems", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Shell_MoveItems(
+    public static partial int Shell_MoveItems(
         string[] sources, int count, string dest, IntPtr hwnd);
 
     /// <summary>Deletes items via IFileOperation.  recycle = send to Recycle Bin.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_Shell_DeleteItems", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Shell_DeleteItems(
+    public static partial int Shell_DeleteItems(
         string[] paths, int count, IntPtr hwnd,
         [MarshalAs(UnmanagedType.U1)] bool recycle);
 
     /// <summary>Renames a single item via IFileOperation.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_Shell_RenameItem", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Shell_RenameItem(string path, string newName, IntPtr hwnd);
+    public static partial int Shell_RenameItem(string path, string newName, IntPtr hwnd);
 
     /// <summary>Creates a new folder via IFileOperation.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_Shell_CreateFolder", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Shell_CreateFolder(string parentPath, string folderName, IntPtr hwnd);
+    public static partial int Shell_CreateFolder(string parentPath, string folderName, IntPtr hwnd);
 
     // -----------------------------------------------------------------------
     // Context Menu
@@ -107,7 +107,7 @@ internal static partial class NativeBridge
 
     /// <summary>Shows the native Windows Shell context menu for the given paths.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_Shell_ShowContextMenu", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial void Shell_ShowContextMenu(
+    public static partial void Shell_ShowContextMenu(
         string[] paths, int count, IntPtr hwnd, int screenX, int screenY);
 
     // -----------------------------------------------------------------------
@@ -116,17 +116,17 @@ internal static partial class NativeBridge
 
     /// <summary>Delegate called on a thread-pool thread when a drive arrives or leaves.</summary>
     [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Unicode)]
-    internal delegate void DriveCallback(
+    public delegate void DriveCallback(
         [MarshalAs(UnmanagedType.U1)] bool arrived,
         string driveLetter);
 
     /// <summary>Starts drive-change monitoring.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_DriveWatcher_Start")]
-    internal static partial void DriveWatcher_Start(DriveCallback callback);
+    public static partial void DriveWatcher_Start(DriveCallback callback);
 
     /// <summary>Stops drive-change monitoring.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_DriveWatcher_Stop")]
-    internal static partial void DriveWatcher_Stop();
+    public static partial void DriveWatcher_Stop();
 
     // -----------------------------------------------------------------------
     // NanaZip
@@ -134,70 +134,70 @@ internal static partial class NativeBridge
 
     /// <summary>Delegate called periodically with a progress fraction (0.0 – 1.0).</summary>
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    internal delegate void ProgressCallback(double fraction);
+    public delegate void ProgressCallback(double fraction);
 
     /// <summary>Lists archive entries as JSON into outJson.  Returns 0 on success.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_NanaZip_List", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int NanaZip_List(
+    public static partial int NanaZip_List(
         string archivePath, Span<char> outJson, int bufLen);
 
     /// <summary>Extracts archive to dest.  cb may be null.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_NanaZip_Extract", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int NanaZip_Extract(
+    public static partial int NanaZip_Extract(
         string archivePath, string dest, ProgressCallback? cb);
 
     /// <summary>Compresses sources into destArchive.  cb may be null.</summary>
     [LibraryImport(DllName, EntryPoint = "FE_NanaZip_Compress", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int NanaZip_Compress(
+    public static partial int NanaZip_Compress(
         string[] sources, int count, string destArchive, ProgressCallback? cb);
     // -----------------------------------------------------------------------
     // Tray & Lifecycle
     // -----------------------------------------------------------------------
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    internal delegate void TrayCallback(int actionCode);
+    public delegate void TrayCallback(int actionCode);
 
     [LibraryImport(DllName, EntryPoint = "FE_Tray_Create", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial void Tray_Create(IntPtr ownerHwnd, string tooltip, TrayCallback callback);
+    public static partial void Tray_Create(IntPtr ownerHwnd, string tooltip, TrayCallback callback);
 
     [LibraryImport(DllName, EntryPoint = "FE_Tray_Destroy")]
-    internal static partial void Tray_Destroy();
+    public static partial void Tray_Destroy();
 
     [LibraryImport(DllName, EntryPoint = "FE_Tray_ShowBalloon", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial void Tray_ShowBalloon(string title, string msg, uint timeoutMs);
+    public static partial void Tray_ShowBalloon(string title, string msg, uint timeoutMs);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    public static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool SetForegroundWindow(IntPtr hWnd);
+    public static partial bool SetForegroundWindow(IntPtr hWnd);
 
     // -----------------------------------------------------------------------
     // Preview Handler & Metadata
     // -----------------------------------------------------------------------
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct RECT
+    public struct RECT
     {
         public int left, top, right, bottom;
     }
 
     [LibraryImport(DllName, EntryPoint = "FE_Preview_Create", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial IntPtr Preview_Create(string path, IntPtr hwndParent, ref RECT bounds);
+    public static partial IntPtr Preview_Create(string path, IntPtr hwndParent, ref RECT bounds);
 
     [LibraryImport(DllName, EntryPoint = "FE_Preview_CanHandle", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Preview_CanHandle(string path);
+    public static partial int Preview_CanHandle(string path);
 
     [LibraryImport(DllName, EntryPoint = "FE_Preview_Resize")]
-    internal static partial void Preview_Resize(IntPtr context, ref RECT newBounds);
+    public static partial void Preview_Resize(IntPtr context, ref RECT newBounds);
 
     [LibraryImport(DllName, EntryPoint = "FE_Preview_Destroy")]
-    internal static partial void Preview_Destroy(IntPtr context);
+    public static partial void Preview_Destroy(IntPtr context);
 
     [LibraryImport(DllName, EntryPoint = "FE_Property_GetDetails", StringMarshalling = StringMarshalling.Utf16)]
-    internal static partial int Property_GetDetails(
+    public static partial int Property_GetDetails(
         string path,
         ref char outType, int typeLen,
         ref char outDimensions, int dimLen,

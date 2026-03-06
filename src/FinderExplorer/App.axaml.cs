@@ -73,6 +73,28 @@ public partial class App : Application
             {
                 try
                 {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\DWM");
+                        if (key?.GetValue("AccentColor") is int rawColor)
+                        {
+                            byte a = 255;
+                            // Registry ABGR to ARGB
+                            byte r = (byte)(rawColor & 0xFF);
+                            byte g = (byte)((rawColor >> 8) & 0xFF);
+                            byte b = (byte)((rawColor >> 16) & 0xFF);
+
+                            var accent = Avalonia.Media.Color.FromArgb(a, r, g, b);
+                            var accentBrush = new Avalonia.Media.SolidColorBrush(accent);
+
+                            Resources["SystemAccentColorLight2"] = accent;
+                            Resources["AccentFillColorDefaultBrush"] = accentBrush;
+                            Resources["App.Theme.FillColorAttentionBrush"] = accentBrush;
+                            return;
+                        }
+                    }
+
+                    // Fallback using PlatformSettings
                     var platformSettings = mainWindow.PlatformSettings;
                     if (platformSettings != null)
                     {
@@ -80,9 +102,7 @@ public partial class App : Application
                         var accent = colors.AccentColor1;
                         var accentBrush = new Avalonia.Media.SolidColorBrush(accent);
 
-                        // Keep both color and brush resources in sync for all templates.
                         Resources["SystemAccentColorLight2"] = accent;
-                        // Override accent brush resources directly
                         Resources["AccentFillColorDefaultBrush"] = accentBrush;
                         Resources["App.Theme.FillColorAttentionBrush"] = accentBrush;
                     }

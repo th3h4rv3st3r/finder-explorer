@@ -36,6 +36,70 @@ namespace FinderExplorer.Views.Controls
 
             AddHandler(DragDrop.DragOverEvent, FileList_DragOver);
             AddHandler(DragDrop.DropEvent, FileList_Drop);
+            
+            // Add keyboard navigation
+            ItemsList.KeyDown += FileList_KeyDown;
+        }
+
+        private void FileList_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm || vm.Items.Count == 0)
+                return;
+
+            if (e.Key == Key.Enter)
+            {
+                if (vm.HasSelection && vm.OpenSelectedItemCommand.CanExecute(null))
+                {
+                    vm.OpenSelectedItemCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Back)
+            {
+                if (vm.CanNavigateUp)
+                {
+                    vm.NavigateUpCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Delete)
+            {
+                if (vm.HasSelection && vm.DeleteSelectedItemCommand.CanExecute(null))
+                {
+                    vm.DeleteSelectedItemCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key is Key.Up or Key.Down or Key.Left or Key.Right)
+            {
+                int currentIndex = vm.SelectedItem != null ? vm.Items.IndexOf(vm.SelectedItem) : -1;
+                if (currentIndex == -1)
+                {
+                    vm.SelectedItem = vm.Items.FirstOrDefault();
+                    e.Handled = true;
+                    return;
+                }
+
+                int newIndex = currentIndex;
+                
+                // Keep it simple for now: Up/Left = Previous, Down/Right = Next
+                // (True 2D grid navigation requires knowing column counts, which changes dynamically)
+                if (e.Key is Key.Up or Key.Left)
+                {
+                    newIndex = Math.Max(0, currentIndex - 1);
+                }
+                else if (e.Key is Key.Down or Key.Right)
+                {
+                    newIndex = Math.Min(vm.Items.Count - 1, currentIndex + 1);
+                }
+
+                if (newIndex != currentIndex)
+                {
+                    vm.SelectedItem = vm.Items[newIndex];
+                    ItemsList.ScrollIntoView(vm.SelectedItem);
+                }
+                e.Handled = true;
+            }
         }
 
         private void FileItem_DoubleTapped(object? sender, TappedEventArgs e)
@@ -210,10 +274,17 @@ namespace FinderExplorer.Views.Controls
 
             var targetPath = vm.CurrentPath;
 
-            // If dropping onto a folder, target is that folder
-            if (e.Source is Control ctrl && ctrl.DataContext is FileItemViewModel item && item.IsDirectory)
+            // Use Visual Tree hit-testing to find the directory we dropped onto
+            var point = e.GetPosition(ItemsList);
+            var hitControl = ItemsList.InputHitTest(point) as Avalonia.Visual;
+
+            if (hitControl != null)
             {
-                targetPath = item.FullPath;
+                var listBoxItem = hitControl.FindAncestorOfType<ListBoxItem>();
+                if (listBoxItem?.DataContext is FileItemViewModel targetItem && targetItem.IsDirectory)
+                {
+                    targetPath = targetItem.FullPath;
+                }
             }
 
             if (string.IsNullOrEmpty(targetPath)) return;

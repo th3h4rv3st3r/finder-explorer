@@ -41,7 +41,7 @@
     </Style>
 
     <Style Selector="Button.address-toolbar-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="Button.address-toolbar-btn:pressed /template/ Border#Bd">
@@ -97,7 +97,7 @@
     </Style>
 
     <Style Selector="Button.omnibar-mode-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="Button.omnibar-mode-btn:pressed /template/ Border#Bd">
@@ -105,7 +105,7 @@
     </Style>
 
     <Style Selector="Button.omnibar-mode-btn.active /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <!-- Home button in path mode -->
@@ -134,7 +134,7 @@
     </Style>
 
     <Style Selector="Button.omnibar-home-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="Button.omnibar-home-btn:pressed /template/ Border#Bd">
@@ -171,7 +171,7 @@
     </Style>
 
     <Style Selector="Button.omnibar-crumb-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="Button.omnibar-crumb-btn:pressed /template/ Border#Bd">
@@ -202,7 +202,7 @@
     </Style>
 
     <Style Selector="Button.omnibar-crumb-chevron-btn:pointerover /template/ Border#Bd">
-        <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource App.Theme.SurfaceLayer.BackgroundBrush}" />
     </Style>
 
     <Style Selector="Button.omnibar-crumb-chevron-btn:pressed /template/ Border#Bd">
